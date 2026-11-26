@@ -1,0 +1,11 @@
+# Paket yang terpasang pada Python 3.11 saat audit PHASE 0.
+# Tooling notebook ada di requirements-notebooks.txt; PyTorch ada di requirements-training.txt.
+numpy==2.3.4
+pandas==2.3.3
+scikit-learn==1.9.1
+matplotlib==3.10.8
+seaborn==0.13.2
+scipy==1.17.0
+openpyxl==3.1.5
+joblib==1.6.0
+ipykernel==7.1.0

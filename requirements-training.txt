@@ -1,0 +1,5 @@
+# Versi PyTorch CUDA yang tersedia pada Windows saat PHASE 2.
+--extra-index-url https://download.pytorch.org/whl/cu130
+-r requirements-notebooks.txt
+torch==2.9.0+cu130
+torchvision==0.24.0+cu130
