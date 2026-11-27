@@ -112,6 +112,8 @@ VGG19 selesai melalui smoke dan full training yang diizinkan dalam satu arahan. 
 
 ## Perbandingan akhir dan reproduksibilitas
 
+Ringkasan khusus tiga arsitektur tersedia pada [perbandingan ResNet50, VGG16, dan VGG19](docs/perbandingan_model.md).
+
 Buka `notebooks/05_Model_Comparison.ipynb` dengan kernel `.venv`. Default `RUN_FINAL_EVALUATION=False` membaca hasil yang sudah ada. Notebook beroutput lokal: `artifacts/notebooks/05_Model_Comparison.executed.ipynb`. Tidak ada training ulang CNN atau pengulangan inferensi test saat membaca laporan.
 
 Hasil ada di `artifacts/comparison/`: `comparison_validation.csv`, `comparison_test.csv`, metrik dan prediksi per posisi, `training_costs.csv`, `transfer_contributions.csv`, checkpoint baseline, `research_discussion.md`, dan `quality_checks.json`. Sebanyak 32 tes lulus dan 95 grafik disimpan pada 300 DPI. Pengujian setelah paket training terpasang:
