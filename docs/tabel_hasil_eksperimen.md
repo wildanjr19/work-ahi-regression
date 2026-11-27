@@ -28,7 +28,7 @@ Setiap sel memuat kode eksperimen dan RMSE test. Seluruh kondisi memakai 179 sam
 
 A1 terpilih berdasarkan RMSE validation sebelum test dibaca. Pilihan tidak diubah berdasarkan test. Satu prediksi test negatif pada C3 tetap disertakan; tidak ada clipping atau penghapusan kasus buruk.
 
-Data masih sementara menunggu konfirmasi klien. Hasil berasal dari satu split dan seed; belum ada CI atau uji signifikansi. Baseline median/Ridge tersedia pada [laporan PHASE 5](phase_5_report.md); pembahasan tiga arsitektur ada pada [ringkasan perbandingan](perbandingan_model.md).
+Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Hasil berasal dari satu split dan seed; belum ada CI atau uji signifikansi. Baseline median/Ridge tersedia pada [laporan PHASE 5](phase_5_report.md); pembahasan tiga arsitektur ada pada [ringkasan perbandingan](perbandingan_model.md).
 
 Antislop R-17/R-36 PASS: seluruh nilai sesuai CSV hasil aktual dan kode eksperimen konsisten.
 

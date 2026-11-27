@@ -107,7 +107,7 @@ Terdapat nilai AHI ekstrem hingga 600.
 
 Seluruh informasi tersebut merupakan hasil pemeriksaan awal. Lakukan validasi ulang menggunakan kode, jangan melakukan hardcoding jumlah data sebagai hasil analisis.
 
-Status dataset asli atau hasil oversampling belum dikonfirmasi. Dokumentasikan ketidakpastian ini dan jangan mengasumsikan data pasti bebas dari duplikasi sintetis.
+Pembaruan arahan klien, 27 November 2026: sertakan seluruh 411 ID dengan data dan target asli. Catat temuan fitur identik dan jangan mengasumsikan data bebas dari duplikasi sintetis.
 
 ## 4. Tujuan Penelitian
 
@@ -755,7 +755,7 @@ Berikan pembahasan berdasarkan hasil eksperimen aktual mengenai:
 - Domain gap antara ImageNet dan feature image fisiologis.
 - Keterbatasan transformasi tabular-to-image.
 - Pengaruh data ekstrem.
-- Status oversampling dataset yang belum dikonfirmasi.
+- Temuan fitur identik antar-ID dan keputusan klien untuk mempertahankan seluruh 411 ID.
 - Keterbatasan generalisasi terhadap pasien di luar dataset.
 
 Jangan mengklaim penelitian ini merupakan penelitian pertama tanpa kajian literatur yang memadai.

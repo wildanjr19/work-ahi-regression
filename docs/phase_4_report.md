@@ -1,6 +1,6 @@
 # PHASE 4: hasil VGG19
 
-Smoke test, QA, dan tiga eksperimen penuh selesai sesuai izin pengguna. Protokol tetap: PyTorch CUDA, RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, early stopping patience 10. Data masih sementara menunggu konfirmasi klien.
+Smoke test, QA, dan tiga eksperimen penuh selesai sesuai izin pengguna. Protokol tetap: PyTorch CUDA, RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, early stopping patience 10. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan.
 
 ## Hasil validation
 
@@ -28,7 +28,7 @@ Notebook baru: `notebooks/04_VGG19.ipynb`. Pengujian, README, dan AGENTS diperba
 
 Hasil lokal: `artifacts/experiments/VGG19/`, mencakup checkpoint, history, prediksi, metrik, pemilihan, dan QA. Laporan beroutput: `artifacts/notebooks/04_VGG19.full_results.executed.ipynb`. Smoke disimpan terpisah.
 
-Sembilan eksperimen CNN tersedia. Berikutnya PHASE 5: perbandingan model dan baseline setelah persetujuan. Provenance dan AHI ekstrem tetap perlu konfirmasi klien.
+Sembilan eksperimen CNN tersedia. Berikutnya PHASE 5: perbandingan model dan baseline setelah persetujuan. Fitur identik dan AHI ekstrem dipertahankan sesuai arahan klien.
 
 Antislop R-31 PASS: memakai runner bersama dan komentar seperlunya.
 

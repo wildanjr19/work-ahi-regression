@@ -1,6 +1,6 @@
 # PHASE 2: hasil ResNet50
 
-Tiga eksperimen penuh selesai setelah persetujuan pengguna. PyTorch CUDA native Windows memakai RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, dan early stopping patience 10. Dataset tetap sementara sambil menunggu konfirmasi klien.
+Tiga eksperimen penuh selesai setelah persetujuan pengguna. PyTorch CUDA native Windows memakai RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, dan early stopping patience 10. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan.
 
 ## Hasil validation
 
@@ -28,6 +28,6 @@ Hasil penuh: `artifacts/experiments/ResNet50/`, termasuk checkpoint, history, pr
 
 Perubahan: `src/reporting.py`, pengujiannya, `02_ResNet50.ipynb`, README, dan AGENTS. Notebook laporan: `artifacts/notebooks/02_ResNet50.full_results.executed.ipynb`.
 
-Berikutnya PHASE 3: VGG16 dengan split, head, dan protokol yang sama, setelah persetujuan pengguna. Provenance dan AHI ekstrem tetap perlu konfirmasi klien.
+Berikutnya PHASE 3: VGG16 dengan split, head, dan protokol yang sama, setelah persetujuan pengguna. Fitur identik dan AHI ekstrem dipertahankan sesuai arahan klien.
 
 Antislop: PASS; angka berasal dari eksekusi dan laporan tidak memuat ID pasien. Keterbatasan validation dan status data dinyatakan eksplisit.

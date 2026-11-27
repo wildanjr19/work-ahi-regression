@@ -27,7 +27,7 @@ Baru: `src/comparison.py`, `src/comparison_plots.py`, `tests/test_comparison.py`
 
 Hasil lokal: `artifacts/comparison/`; notebook beroutput: `artifacts/notebooks/05_Model_Comparison.executed.ipynb`. Pembahasan lengkap dan semua kondisi tersimpan di sana.
 
-PHASE 0 sampai PHASE 5 selesai secara teknis. Data masih sementara menunggu konfirmasi klien. Satu seed/split, tanpa CI, dan test telah terpapar; hasil ini belum membuktikan generalisasi eksternal atau validasi klinis.
+PHASE 0 sampai PHASE 5 selesai secara teknis. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Satu seed/split, tanpa CI, dan test telah terpapar; hasil ini belum membuktikan generalisasi eksternal atau validasi klinis.
 
 Antislop R-31 PASS: memakai checkpoint/runner dan fungsi evaluasi bersama.
 

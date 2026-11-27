@@ -24,7 +24,7 @@ ResNet50 scratch terpilih sebagai CNN utama dari sembilan kondisi berdasarkan va
 
 Seluruh CNN memakai sampel, split, scaler, normalisasi, seed 42, batch 8, Adam/MSE, learning rate, head 128/64, serta aturan early stopping yang sama. Jumlah parameter dan epoch aktual berbeda mengikuti arsitektur dan early stopping. Sampel: train 755, validation 157, test 179.
 
-R2 test masih rendah. Kesimpulan berlaku pada konfigurasi, satu split, dan satu seed ini; tidak ada CI atau uji signifikansi. Data tetap sementara menunggu konfirmasi klien, termasuk fitur identik antar-ID dan AHI ekstrem. Hasil belum membuktikan generalisasi eksternal atau validasi klinis.
+R2 test masih rendah. Kesimpulan berlaku pada konfigurasi, satu split, dan satu seed ini; tidak ada CI atau uji signifikansi. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Hasil belum membuktikan generalisasi eksternal atau validasi klinis.
 
 Sumber lengkap sembilan kondisi, baseline, grafik, dan metrik per posisi: [notebook 05](../notebooks/05_Model_Comparison.ipynb). Lihat juga [laporan PHASE 5](phase_5_report.md).
 

@@ -1,19 +1,16 @@
-# Konfirmasi hasil audit dataset
+# Keputusan penggunaan dataset
 
-Audit awal ketiga dataset selesai. Sebelum pembagian data training, validation, dan testing, mohon konfirmasi temuan berikut.
+Arahan klien disampaikan pada 27 November 2026: gunakan seluruh 411 ID dengan data dan target asli.
 
-## Temuan
+| Subset | ID | Sampel lengkap tiga sensor |
+|---|---:|---:|
+| Training | 287 | 755 |
+| Validation | 59 | 157 |
+| Testing | 65 | 179 |
+| Total | 411 | 1.091 |
 
-- Tidak ditemukan nilai kosong, infinite, atau duplikasi kunci pasien-posisi-IMF. AHI konsisten untuk pasien dan posisi yang sama dalam maupun antar sensor.
-- Sebanyak 160 sampel dari 62 ID memiliki fitur ketiga sensor identik pada posisi yang sama, membentuk 80 kelompok. Lima kelompok memiliki AHI berbeda antar-ID. Temuan ini belum membuktikan oversampling atau kesalahan data.
-- AHI maksimum mencapai 600 pada satu sampel posisi Right. Nilai tersebut tetap dipertahankan.
+Seluruh ID sudah tercakup pada eksperimen yang selesai. Sebanyak 16 pasangan ID-posisi tanpa PulseRate dikeluarkan melalui aturan complete-case; tidak ada ID yang dikeluarkan.
 
-## Mohon konfirmasi
+Fitur identik pada 160 sampel (80 kelompok, 62 ID), lima kelompok dengan AHI berbeda, serta AHI maksimum 600 tetap dipertahankan. ID yang terhubung oleh fitur identik berada dalam subset yang sama. Persetujuan penggunaan data tidak menyatakan asal atau validitas klinis label telah diverifikasi.
 
-1. Apakah dataset merupakan data asli atau sudah melalui oversampling, penggandaan, atau proses sintetis?
-2. Apakah ID dengan fitur identik mewakili pasien berbeda atau salinan/pengukuran ulang? Mohon periksa AHI pada lima kelompok yang berbeda target.
-3. Apakah AHI 600 benar sesuai sumber? Mohon konfirmasi satuan dan cara perhitungannya.
-
-## Usulan penanganan
-
-Pertahankan data dan target asli. Untuk mencegah kebocoran data, tempatkan ID yang terhubung oleh fitur identik dalam subset yang sama. Penanganan akhir mengikuti hasil konfirmasi sumber data.
+Tidak diperlukan perubahan data, split, atau training ulang. Metadata dan protokol beku tetap menjadi rekam eksperimen; dokumen ini mencatat keputusan terbaru.

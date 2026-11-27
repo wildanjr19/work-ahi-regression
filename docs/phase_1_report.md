@@ -1,6 +1,6 @@
 # Laporan PHASE 1
 
-Status: preprocessing sementara selesai, menunggu konfirmasi klien. Belum ada training.
+Status: preprocessing selesai; seluruh 411 ID disertakan sesuai arahan klien. Pada PHASE 1 belum ada training.
 
 ## Hasil aktual
 
@@ -30,7 +30,7 @@ Sebanyak 1.091 sampel dari 411 ID membentuk 380 komponen pasien/salinan. Enam be
 
 ## Batasan dan langkah berikutnya
 
-Provenance, lima kelompok fitur identik dengan AHI berbeda, dan AHI ekstrem belum dikonfirmasi. Grouping hanya menangani salinan persis; hasil belum final untuk penelitian. Jika klien mengoreksi sumber, preprocessing harus diregenerasi.
+Seluruh 411 ID, termasuk fitur identik dan AHI ekstrem, dipertahankan sesuai arahan klien. Grouping menjaga salinan persis dalam subset yang sama; tidak memvalidasi identitas biologis atau label. Jika sumber dikoreksi, preprocessing harus diregenerasi.
 
 Environment `.venv` memakai paket ilmiah global dan tooling notebook lokal. GPU/TensorFlow belum diuji. PHASE 2 adalah implementasi dan smoke test ResNet50 setelah persetujuan; full training memerlukan persetujuan tersendiri.
 

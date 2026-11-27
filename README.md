@@ -2,7 +2,7 @@
 
 Proyek penelitian ini memprediksi AHI kontinu per pasien dan posisi tidur menggunakan fitur IMF dari Flow, Pulse Rate, dan Pleth. ResNet50, VGG16, dan VGG19 dibandingkan melalui scratch, feature extraction, dan fine-tuning, dengan baseline median dan Ridge. Data sumber berupa fitur tabular, bukan citra fisiologis atau sinyal mentah.
 
-Status: PHASE 0 sampai PHASE 5 selesai secara teknis. ResNet50 scratch terpilih dari validation sebelum test; pada 179 sampel test, MAE 17,9986, RMSE 29,0473, R2 0,1059. Data dan kesimpulan penelitian tetap sementara menunggu konfirmasi klien. Lihat [laporan PHASE 5](docs/phase_5_report.md), [PHASE 4](docs/phase_4_report.md), [PHASE 3](docs/phase_3_report.md), [PHASE 2](docs/phase_2_report.md), dan [aturan proyek](AGENTS.md).
+Status: PHASE 0 sampai PHASE 5 selesai secara teknis. ResNet50 scratch terpilih dari validation sebelum test; pada 179 sampel test, MAE 17,9986, RMSE 29,0473, R2 0,1059. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Lihat [laporan PHASE 5](docs/phase_5_report.md), [PHASE 4](docs/phase_4_report.md), [PHASE 3](docs/phase_3_report.md), [PHASE 2](docs/phase_2_report.md), dan [aturan proyek](AGENTS.md).
 
 ## Struktur proyek
 
@@ -24,7 +24,7 @@ notebooks/03_VGG16.ipynb         Smoke GPU tiga skenario dan kontrol full traini
 notebooks/04_VGG19.ipynb         Smoke/full VGG19 dan pembacaan hasil tersimpan
 notebooks/05_Model_Comparison.ipynb  Perbandingan sembilan CNN dan dua baseline
 tests/                    Pengujian audit, preprocessing, model dan pelaporan
-docs/                     Laporan per phase dan pertanyaan untuk klien
+docs/                     Laporan per phase dan keputusan penggunaan data
 artifacts/audit/           Bukti audit lokal, termasuk metadata pasien
 artifacts/processed_data/ Dataset hasil PHASE 1
 artifacts/notebooks/      Notebook yang telah dieksekusi, tetap lokal
@@ -141,7 +141,7 @@ Notebook dibuat dan dijalankan satu fase per persetujuan, bukan sekaligus.
 
 ## Preprocessing dan model
 
-Preprocessing sementara memakai complete-case tiga sensor. ID yang terhubung oleh fitur mentah identik ketiga sensor pada posisi sama mengikuti satu komponen split; seluruh posisi pasien tetap bersama. Identitas dan target dipertahankan. Provenance tetap perlu dikonfirmasi ke klien.
+Preprocessing memakai complete-case tiga sensor. Seluruh 411 ID tetap terwakili; 16 pasangan ID-posisi tanpa PulseRate dikeluarkan. ID yang terhubung oleh fitur mentah identik ketiga sensor pada posisi sama mengikuti satu komponen split; seluruh posisi pasien tetap bersama. Identitas dan target dipertahankan. Keputusan penggunaan data tercatat dalam [keputusan klien](docs/konfirmasi_dataset_klien.md).
 
 Rasio awal training/validation/test adalah 70/15/15, seed 42. Fit percentile scaling 1/99 per fitur dan sensor hanya dari training. Target AHI dipertahankan dalam skala aslinya. Posisi dipakai sebagai one-hot terpisah; ID dan AHI tidak menjadi fitur.
 
@@ -151,7 +151,7 @@ Dataset tersimpan sebagai `train.npz`, `validation.npz`, dan `test.npz`. Setiap 
 
 Citra belum mendapat preprocessing backbone. Dataset PyTorch mengubah NHWC menjadi NCHW. Model membagi piksel dengan 255 tepat sekali, lalu memakai mean/std RGB dari bobot TorchVision IMAGENET1K_V1. Resize bilinear dan center crop bawaan recipe fotografi tidak diterapkan agar grid fitur tetap utuh. Target float64 menyimpan AHI asli; loss memakai float32. Baseline memakai flattened scaled_features, mask, dan posisi dengan manifest yang sama.
 
-`metadata.json` menyimpan status sementara, konfigurasi, versi, hash sumber/output, dan kontrak array. Manifest, scaler, feature order, statistik split, laporan clipping, audit, dan hasil QA juga tersedia. Notebook model wajib memakai hasil ini tanpa split atau fit scaler ulang. Jika sumber dikoreksi klien, regenerasi seluruh preprocessing sebelum eksperimen.
+`metadata.json` menyimpan catatan saat preprocessing, konfigurasi, versi, hash sumber/output, dan kontrak array. Metadata serta protokol beku dipertahankan sebagai rekam eksperimen; keputusan penggunaan data terbaru tercatat pada [keputusan klien](docs/konfirmasi_dataset_klien.md). Manifest, scaler, feature order, statistik split, laporan clipping, audit, dan hasil QA juga tersedia. Notebook model wajib memakai hasil ini tanpa split atau fit scaler ulang. Jika sumber dikoreksi klien, regenerasi seluruh preprocessing sebelum eksperimen.
 
 Backbone memakai Global Average Pooling dan head Linear 128/64 yang sama. Feature extraction membekukan backbone ImageNet. Fine-tuning memulai dari checkpoint feature extraction terbaik, membuka layer4 ResNet50, dan mempertahankan Batch Normalization dalam mode eval. [TorchVision ResNet50](https://docs.pytorch.org/vision/0.24/models/generated/torchvision.models.resnet50.html) memakai varian V1.5. Checkpoint `.pt` disimpan sebagai state_dict dan dimuat dengan weights_only=True. Konfigurasi ada di `src/config.py`.
 
@@ -159,7 +159,7 @@ Backbone memakai Global Average Pooling dan head Linear 128/64 yang sama. Featur
 
 Pemilihan model memakai validation. Test dipakai setelah konfigurasi dibekukan. Metrik utama adalah MAE, MSE, RMSE, dan R2 keseluruhan serta per posisi, disertai jumlah sampel. Prediksi negatif dilaporkan; tidak dilakukan clipping diam-diam. DummyRegressor median dan Ridge menjadi baseline tambahan. Plot hasil eksperimen disimpan minimal 300 DPI. Hasil satu split dan seed ini tidak mengukur variasi antar-run; CI dan uji signifikansi tidak dihitung.
 
-Dataset berasal dari 411 ID, tetapi ID berbeda belum menjamin observasi independen. Audit menemukan 160 sampel dengan fitur tiga sensor identik; lima kelompok salinan memiliki target berbeda. Status oversampling, alasan salinan, dan validitas AHI ekstrem belum dikonfirmasi. Generalisasi di luar dataset, manfaat ImageNet pada pseudo-image, serta manfaat fine-tuning harus dibuktikan melalui eksperimen. Evaluasi internal tidak membuktikan kesiapan klinis.
+Dataset berasal dari 411 ID, tetapi ID berbeda belum menjamin observasi independen. Audit menemukan 160 sampel dengan fitur tiga sensor identik; lima kelompok salinan memiliki target berbeda. Fitur identik, target berbeda antar-ID, dan AHI ekstrem tetap dipertahankan sesuai arahan klien. Temuan ini tidak membuktikan oversampling atau validitas klinis label. Generalisasi di luar dataset, manfaat ImageNet pada pseudo-image, serta manfaat fine-tuning harus dibuktikan melalui eksperimen. Evaluasi internal tidak membuktikan kesiapan klinis.
 
 ## Troubleshooting
 

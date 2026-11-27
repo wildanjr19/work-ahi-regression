@@ -1,6 +1,6 @@
 # PHASE 3: hasil VGG16
 
-Tiga eksperimen penuh selesai setelah persetujuan pengguna. Protokol tetap: PyTorch CUDA native Windows, RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, early stopping patience 10. Dataset masih sementara menunggu konfirmasi klien.
+Tiga eksperimen penuh selesai setelah persetujuan pengguna. Protokol tetap: PyTorch CUDA native Windows, RTX 3060 Ti, batch 8, AMP, Adam/MSE, seed 42, maksimal 50 epoch, early stopping patience 10. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan.
 
 ## Hasil validation
 
@@ -26,7 +26,7 @@ Fine-tuning terpilih berdasarkan RMSE validation sesuai kriteria sebelum trainin
 
 Hasil: `artifacts/experiments/VGG16/`, termasuk checkpoint, history, prediksi, metrik, pemilihan, dan QA. Notebook laporan: `artifacts/notebooks/03_VGG16.full_results.executed.ipynb`. Smoke tetap terpisah.
 
-Notebook sumber, README, AGENTS, dan laporan diperbarui. Runner/config bersama tidak berubah. Berikutnya PHASE 4 VGG19 setelah persetujuan pengguna. Provenance dan AHI ekstrem tetap perlu konfirmasi klien.
+Notebook sumber, README, AGENTS, dan laporan diperbarui. Runner/config bersama tidak berubah. Berikutnya PHASE 4 VGG19 setelah persetujuan pengguna. Fitur identik dan AHI ekstrem dipertahankan sesuai arahan klien.
 
 Antislop R-31 PASS: runner dipakai ulang; notebook default menonaktifkan full training.
 

@@ -6,7 +6,7 @@ Sumber kebutuhan: `BRIEF.md`. Bahasa dokumentasi dan notebook adalah Bahasa Indo
 
 Aturan tetap laporan Markdown (`.md`): tulis ringkas, padat, dan jelas. Cantumkan hanya informasi penting; hindari pengulangan, penjelasan bertele-tele, dan detail yang tidak diperlukan.
 
-PHASE 0 sampai PHASE 5 selesai secara teknis. Sembilan CNN, baseline median/Ridge, perbandingan, pembekuan pilihan validation, dan evaluasi test telah dijalankan. Pengguna mengizinkan PHASE 5 melalui pesan "kerjakan next phase bro!". Laporan ada di `docs/phase_0_report.md` sampai `docs/phase_5_report.md`. Data dan kesimpulan penelitian tetap sementara sambil menunggu konfirmasi klien.
+PHASE 0 sampai PHASE 5 selesai secara teknis. Sembilan CNN, baseline median/Ridge, perbandingan, pembekuan pilihan validation, dan evaluasi test telah dijalankan. Pengguna mengizinkan PHASE 5 melalui pesan "kerjakan next phase bro!". Laporan ada di `docs/phase_0_report.md` sampai `docs/phase_5_report.md`. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan.
 
 Perubahan arahan pengguna pada 26 November 2026: gunakan PyTorch/TorchVision dengan CUDA native Windows untuk seluruh model, menggantikan ketentuan TensorFlow/Keras dalam brief asli. Arsitektur dan protokol penelitian tetap. Implementasi ResNet50 dan smoke test tiga skenario sudah berjalan di GPU. Lihat `docs/phase_2_report.md`.
 
@@ -30,15 +30,15 @@ Setelah setiap phase, laporkan pekerjaan, perubahan file, pengujian aktual, masa
 - Target yang berbeda dalam satu pasangan pasien-posisi atau antar sensor menghentikan tahap terkait. Jangan merata-ratakan target secara otomatis.
 - AHI ekstrem dan prediksi negatif harus dilaporkan. Jangan clipping target, menghapus error buruk, atau mengubah prediksi diam-diam.
 - AHI, ID, posisi, dan indeks IMF tidak masuk ke 11 kolom fitur sensor. Posisi masuk melalui input one-hot terpisah dengan urutan Supine, Left, Right.
-- Tidak ada SMOTE. Status oversampling sumber belum dikonfirmasi.
+- Pipeline tidak menerapkan SMOTE; gunakan ketiga workbook yang ditetapkan.
 
 ## Temuan yang harus ditangani sebelum split
 
 Audit PHASE 0 menemukan 160 sampel complete-case dalam 80 kelompok dengan fitur ketiga sensor identik pada posisi yang sama, melibatkan 62 ID. Lima kelompok memiliki AHI berbeda antar-ID. Kesamaan telah diverifikasi ulang dengan perbandingan elemen matriks dari Excel. Ini belum membuktikan oversampling atau identitas pasien yang sama.
 
-Pengguna mengizinkan PHASE 1 sambil menunggu jawaban klien. Implementasi sementara mempertahankan semua baris dan mengelompokkan ID yang terhubung oleh fitur identik ketiga sensor pada posisi yang sama ke komponen terhubung. Aturan ini mengabaikan target dan menjaga seluruh posisi milik satu ID tetap bersama. Jangan menggabungkan identitas atau merata-ratakan AHI. GroupShuffleSplit hanya berbasis ID tidak cukup mencegah salinan fitur antar subset pada data ini. Provenance, lima kelompok dengan target berbeda, dan AHI ekstrem tetap perlu konfirmasi sebelum finalisasi penelitian.
+Arahan klien yang disampaikan pengguna pada 27 November 2026: sertakan seluruh 411 ID dan pertahankan data serta target asli. Preprocessing complete-case yang sudah dijalankan memenuhi cakupan ID tersebut; 16 pasangan ID-posisi tanpa PulseRate dikeluarkan, tanpa mengeluarkan ID. Implementasi mengelompokkan ID yang terhubung oleh fitur identik ketiga sensor pada posisi yang sama ke komponen terhubung. Aturan ini mengabaikan target dan menjaga seluruh posisi milik satu ID tetap bersama. Jangan menggabungkan identitas atau merata-ratakan AHI. GroupShuffleSplit hanya berbasis ID tidak cukup mencegah salinan fitur antar subset pada data ini. Lima kelompok dengan target berbeda dan AHI ekstrem tetap dicatat sebagai temuan. Keputusan ini menyetujui penggunaan data apa adanya, tanpa menyatakan asal atau validitas klinis label telah diverifikasi. Lihat `docs/konfirmasi_dataset_klien.md`. Metadata dan aset eksperimen beku tidak ditulis ulang agar hash historis tetap valid.
 
-Hasil sementara: 411 ID membentuk 380 komponen; train 755 sampel/287 ID, validation 157/59, test 179/65. Tidak ada overlap ID, komponen, fingerprint mentah, atau input hasil encoding antar subset. Jangan mengubah seed/split untuk memperbaiki distribusi target atau performa. Jika sumber diperbaiki klien, regenerasi seluruh preprocessing dan catat perubahan protokol sebelum memakai hasil model.
+Hasil preprocessing: 411 ID membentuk 380 komponen; train 755 sampel/287 ID, validation 157/59, test 179/65. Tidak ada overlap ID, komponen, fingerprint mentah, atau input hasil encoding antar subset. Jangan mengubah seed/split untuk memperbaiki distribusi target atau performa. Jika sumber diperbaiki klien, regenerasi seluruh preprocessing dan catat perubahan protokol sebelum memakai hasil model.
 
 ## Split, scaling, dan feature image
 

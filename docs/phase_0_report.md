@@ -49,7 +49,7 @@ Statistik berikut menghitung satu AHI per sampel complete-case, bukan mengulangn
 | Left | 330 | 0 | 4,4944 | 200 | 115 | 5 |
 | Right | 350 | 0 | 9,8961 | 600 | 64 | 3 |
 
-Nilai 600 muncul pada satu sampel Right. Batas >100 hanya penanda audit yang configurable, bukan ambang diagnosis atau alasan penghapusan. Target tidak diubah. Validitas dan satuan target ekstrem perlu dikonfirmasi melalui sumber data klien.
+Nilai 600 muncul pada satu sampel Right. Batas >100 hanya penanda audit yang configurable, bukan ambang diagnosis atau alasan penghapusan. Target tidak diubah. Sesuai arahan klien, nilai asli tetap disertakan bersama seluruh 411 ID.
 
 Rentang fitur lebar: energi IMF maksimum sekitar 7,748e8 pada Flow, 2,512e9 pada Pulse Rate, dan 3,961e8 pada Pleth. Mean Period mencapai sekitar 26.374 detik pada Flow, 23.289 detik pada Pulse Rate, dan 25.748 detik pada Pleth. Semua finite; angka besar tidak otomatis dianggap salah. Pemeriksaan karakteristik fitur dan dampak scaling dilanjutkan pada PHASE 1. Statistik audit seluruh data tidak digunakan sebagai batas scaler.
 
@@ -70,7 +70,7 @@ Fingerprint hanya dipakai mencari kandidat. Pembacaan ulang workbook dan perband
 
 Temuan ini memperluas brief: tidak ada duplikasi baris biasa, tetapi terdapat salinan representasi sampel antar-ID. Ini belum membuktikan oversampling, identitas pasien yang sama, atau kesalahan target. Jangan menghapus baris, menyatukan ID, atau merata-ratakan target secara otomatis.
 
-Patient-based split tetap wajib, tetapi belum cukup untuk mencegah salinan ini tersebar antar subset. Sebelum split, minta provenance bila tersedia dan tetapkan kebijakan. Rekomendasi: pertahankan seluruh observasi, bentuk komponen terhubung antar-ID berdasarkan fitur identik tiga sensor pada posisi yang sama, dan pisahkan berdasarkan komponen tersebut. Semua posisi satu ID selalu mengikuti kelompok yang sama. Laporkan rasio aktual dan jumlah kelompok efektif. Keputusan ini belum diterapkan pada PHASE 0.
+Patient-based split tetap wajib, tetapi belum cukup untuk mencegah salinan ini tersebar antar subset. Kebijakan yang kemudian diterapkan pada PHASE 1: pertahankan seluruh observasi, bentuk komponen terhubung antar-ID berdasarkan fitur identik tiga sensor pada posisi yang sama, dan pisahkan berdasarkan komponen tersebut. Semua posisi satu ID selalu mengikuti kelompok yang sama. Laporkan rasio aktual dan jumlah kelompok efektif. Keputusan ini belum diterapkan pada PHASE 0.
 
 ## Environment dan GPU
 
@@ -165,7 +165,7 @@ Split leakage, citra, runtime GPU TensorFlow, penyimpanan/pemuatan model, dan me
 
 ## Rencana implementasi PHASE 1
 
-1. Tetapkan kebijakan salinan dan provenance berdasarkan temuan di atas. Jika provenance belum tersedia, rekomendasi konservatif adalah grouping komponen salinan tanpa menghapus observasi.
+1. Kebijakan diterapkan pada PHASE 1: grouping komponen salinan tanpa menghapus ID. Klien menyetujui penggunaan seluruh 411 ID; lihat `konfirmasi_dataset_klien.md`.
 2. Siapkan environment notebook terpisah. Preprocessing dapat berjalan di CPU Windows; WSL2 perlu diselesaikan sebelum smoke test model GPU pada PHASE 2.
 3. Implementasikan `src/preprocessing.py` memakai kontrak konfigurasi yang sama dan pemeriksaan yang menghentikan proses bila target/kunci tidak konsisten.
 4. Buat dan jalankan `01_Preprocessing.ipynb`: penjelasan formal, EDA aktual, kelengkapan sensor, AHI ekstrem, jumlah IMF, serta risiko salinan.
