@@ -1,6 +1,7 @@
 """Konfigurasi eksperimen; path dihitung relatif terhadap lokasi proyek."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from itertools import product
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +9,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 AUDIT_DIR = ARTIFACTS_DIR / "audit"
 PROCESSED_DIR = ARTIFACTS_DIR / "processed_data"
+TUNING_DIR = ARTIFACTS_DIR / "tuning"
 MODELS_DIR = ARTIFACTS_DIR / "models"
 METRICS_DIR = ARTIFACTS_DIR / "metrics"
 PREDICTIONS_DIR = ARTIFACTS_DIR / "predictions"
@@ -79,6 +81,7 @@ class TrainingConfig:
     seed: int = 42
     batch_size: int = 8
     optimizer: str = "adam"
+    weight_decay: float = 0.0
     loss: str = "mse"
     initial_learning_rate: float = 1e-3
     fine_tuning_learning_rate: float = 1e-5
@@ -124,3 +127,18 @@ class SmokeConfig:
 PREPROCESSING = PreprocessingConfig()
 TRAINING = TrainingConfig()
 SMOKE = SmokeConfig()
+
+SEARCH_SPACE = {
+    "learning_rate": (1e-6, 1e-5, 1e-4, 1e-3),
+    "dropout": (0.1, 0.3, 0.5),
+}
+
+
+def tuning_candidates():
+    """Konfigurasi mandiri dengan grid sama untuk seluruh arsitektur dan strategi."""
+    # Kedua field LR disamakan; default TRAINING tetap kompatibel dengan protokol lama.
+    return tuple(
+        replace(TRAINING, initial_learning_rate=learning_rate,
+                fine_tuning_learning_rate=learning_rate, dropout_rates=(dropout, dropout))
+        for learning_rate, dropout in product(SEARCH_SPACE["learning_rate"], SEARCH_SPACE["dropout"])
+    )

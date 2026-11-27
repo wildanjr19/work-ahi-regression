@@ -2,7 +2,9 @@
 
 Proyek penelitian ini memprediksi AHI kontinu per pasien dan posisi tidur menggunakan fitur IMF dari Flow, Pulse Rate, dan Pleth. ResNet50, VGG16, dan VGG19 dibandingkan melalui scratch, feature extraction, dan fine-tuning, dengan baseline median dan Ridge. Data sumber berupa fitur tabular, bukan citra fisiologis atau sinyal mentah.
 
-Status: PHASE 0 sampai PHASE 5 selesai secara teknis. ResNet50 scratch terpilih dari validation sebelum test; pada 179 sampel test, MAE 17,9986, RMSE 29,0473, R2 0,1059. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Lihat [laporan PHASE 5](docs/phase_5_report.md), [PHASE 4](docs/phase_4_report.md), [PHASE 3](docs/phase_3_report.md), [PHASE 2](docs/phase_2_report.md), dan [aturan proyek](AGENTS.md).
+Hasil historis: PHASE 0 sampai PHASE 5 selesai secara teknis. ResNet50 scratch terpilih dari validation sebelum test; pada 179 sampel test, MAE 17,9986, RMSE 29,0473, R2 0,1059. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Lihat [laporan PHASE 5](docs/phase_5_report.md), [PHASE 4](docs/phase_4_report.md), [PHASE 3](docs/phase_3_report.md), [PHASE 2](docs/phase_2_report.md), dan [aturan proyek](AGENTS.md).
+
+Tuning baru: tiga notebook memakai runner bersama dengan grid sama dan FT langsung dari ImageNet. Integrasi dan smoke aktual sembilan kondisi lulus; full grid selesai dengan 108/108 kandidat berhasil. Evaluasi test tuning belum dijalankan. Lihat [laporan full grid](docs/tuning_full_report.md). Acuan: [desain eksperimen](docs/desain_eksperimen.md), [search space](docs/search_space.md), dan [laporan smoke](docs/tuning_notebook_report.md). Hasil baru terpisah dari seluruh hasil historis.
 
 ## Struktur proyek
 
@@ -14,14 +16,15 @@ src/config.py             Path, kontrak fitur, konfigurasi preprocessing/trainin
 src/audit.py              Audit dataset dan environment yang dapat diulang
 src/preprocessing.py      Grouping, split, scaling, encoding, penyimpanan/validasi
 src/model_utils.py        Model PyTorch, DataLoader, checkpoint, runner smoke/full
+src/tuning.py             Grid search bersama, default nonaktif, tanpa akses test
 src/evaluation.py         Metrik, prediksi, dan grafik regresi
 src/reporting.py          Ringkasan tiga eksperimen penuh dan pemilihan validation
 src/comparison.py         Baseline, protokol beku, pemilihan validation, inferensi test
 src/comparison_plots.py   Grafik perbandingan dan pembahasan dari hasil aktual
 notebooks/01_Preprocessing.ipynb  Notebook preprocessing tanpa output pasien
-notebooks/02_ResNet50.ipynb       Smoke/full terkontrol dan pembacaan hasil tersimpan
-notebooks/03_VGG16.ipynb         Smoke GPU tiga skenario dan kontrol full training
-notebooks/04_VGG19.ipynb         Smoke/full VGG19 dan pembacaan hasil tersimpan
+notebooks/02_ResNet50.ipynb       Tuning ResNet50 melalui runner bersama
+notebooks/03_VGG16.ipynb         Tuning VGG16 melalui runner bersama
+notebooks/04_VGG19.ipynb         Tuning VGG19 melalui runner bersama
 notebooks/05_Model_Comparison.ipynb  Perbandingan sembilan CNN dan dua baseline
 tests/                    Pengujian audit, preprocessing, model dan pelaporan
 docs/                     Laporan per phase dan keputusan penggunaan data
@@ -31,6 +34,7 @@ artifacts/notebooks/      Notebook yang telah dieksekusi, tetap lokal
 artifacts/smoke_tests/    Checkpoint/history/prediksi smoke, bukan hasil penelitian
 artifacts/experiments/   Hasil penuh tiap arsitektur, termasuk metrik validation
 artifacts/comparison/    Protokol, baseline, metrik validation/test, grafik, dan QA
+artifacts/tuning/        Hasil tuning baru, smoke, serta notebook verifikasi lokal
 artifacts/models/         Checkpoint model
 artifacts/metrics/        Metrik dan log eksperimen
 artifacts/predictions/    Hasil prediksi
@@ -51,7 +55,7 @@ git clone https://github.com/wildanjr19/work-ahi-regression.git
 cd work-ahi-regression
 ```
 
-Pindahkan `data/` serta `artifacts/processed_data/`, `artifacts/experiments/`, `artifacts/comparison/`, dan `artifacts/notebooks/` melalui USB atau jaringan lokal. Pertahankan struktur folder; hasil inti sekitar 1,4 GiB. `smoke_tests/` opsional untuk membaca bagian smoke notebook model; `torch_cache/` tidak diperlukan untuk membaca hasil atau memuat checkpoint terlatih.
+Pindahkan `data/` serta `artifacts/processed_data/`, `artifacts/experiments/`, `artifacts/comparison/`, dan `artifacts/notebooks/` melalui USB atau jaringan lokal. Pertahankan struktur folder; hasil inti historis sekitar 1,4 GiB. Sertakan `artifacts/tuning/` untuk hasil baru. `smoke_tests/` menyimpan diagnostik historis; `torch_cache/` tidak diperlukan untuk membaca hasil atau memuat checkpoint terlatih.
 
 Buat `.venv` baru dan pasang dependensi sesuai perangkat laptop. Buka notebook 05 dengan `RUN_FINAL_EVALUATION=False` untuk membaca hasil tanpa fitting atau inferensi ulang. Protokol beku menyimpan path absolut PC; verifikasi aset di lokasi baru memerlukan pemetaan path tanpa menimpa protokol asli. Clone saja tidak menyertakan data atau hasil lokal.
 
@@ -98,19 +102,13 @@ Untuk environment baru, pasang paket proyek dan verifikasi CUDA:
 .\.venv\Scripts\python.exe -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
 ```
 
-Buka `02_ResNet50.ipynb` dengan kernel `.venv` yang sama. Default hanya menjalankan smoke test: satu epoch, satu batch training/validation, batch 8, AMP. Hasil tersimpan di `artifacts/smoke_tests/ResNet50/`; notebook beroutput di `artifacts/notebooks/02_ResNet50.executed.ipynb`.
+Buka notebook 02, 03, atau 04 dengan kernel `.venv` yang sama. Sesuai arahan pengguna, flag tersimpan dipertahankan pada `RUN_TUNING=True`, `RUN_MODE='full'`, dan `FULL_TRAINING_APPROVED=True`. Run All memanggil training; runner menolak namespace hasil yang sudah ada. Untuk hanya membaca hasil, ubah `RUN_TUNING=False` atau jalankan sel hasil tersimpan. Default API runner tetap nonaktif/smoke. Flag tersimpan tidak menggantikan persetujuan baru untuk mengulang full training.
 
-Full training ResNet50 telah dijalankan setelah persetujuan. Hasilnya ada di `artifacts/experiments/ResNet50/`; buka `artifacts/notebooks/02_ResNet50.full_results.executed.ipynb` untuk laporan beroutput. Notebook tersebut membaca hasil tersimpan tanpa mengulang training.
+Smoke aktual sudah dijalankan dari tiga kernel baru: batch 8, satu batch train/validation, satu epoch, AMP. Hasil berada di `artifacts/tuning/grid_v1/{ResNet50,VGG16,VGG19}/smoke/`; salinan notebook beroutput di `artifacts/tuning/notebook_checks/`. Smoke tidak memilih model. Untuk mengulang, gunakan namespace baru karena runner menolak direktori hasil yang sudah ada.
 
-Notebook sumber tetap memakai `RUN_FULL_EXPERIMENTS=False` agar training tidak terulang saat membuka laporan. `RUN_SMOKE_TESTS=False` membaca hasil smoke tersimpan. Jangan mengaktifkan training ulang atau arsitektur berikutnya tanpa persetujuan. Runner development tidak membaca test NPZ.
+Full grid memakai 12 kombinasi per strategi dan memerlukan persetujuan setelah laporan smoke. Jangan mengaktifkan flag full sebelum persetujuan. Runner hanya membaca train/validation. Hasil historis tetap di `artifacts/experiments/` dan `artifacts/smoke_tests/`; laporan ketiga arsitektur tersedia melalui `artifacts/notebooks/*.full_results.executed.ipynb`.
 
-VGG16 memakai kernel dan runner yang sama melalui `notebooks/03_VGG16.ipynb`. Smoke tiga skenario telah berhasil dengan batch 8 dan AMP. Hasilnya di `artifacts/smoke_tests/VGG16/`; notebook beroutput di `artifacts/notebooks/03_VGG16.executed.ipynb`. VGG16 tanpa Batch Normalization membuka convolution block5 pada indeks features 24, 26, dan 28 saat fine-tuning.
-
-Full training VGG16 selesai setelah persetujuan; hasil di `artifacts/experiments/VGG16/`. Notebook `artifacts/notebooks/03_VGG16.full_results.executed.ipynb` dijalankan dari kernel baru untuk membaca hasil tanpa training ulang. Pada sumber, `RUN_FULL_EXPERIMENTS=False` mencegah pengulangan training; `RUN_SMOKE_TESTS=False` membaca hasil smoke tanpa menulis ulang runtime/ringkasan historisnya.
-
-VGG19 selesai melalui smoke dan full training yang diizinkan dalam satu arahan. Sumber: `notebooks/04_VGG19.ipynb`; hasil: `artifacts/smoke_tests/VGG19/` dan `artifacts/experiments/VGG19/`. Notebook laporan `artifacts/notebooks/04_VGG19.full_results.executed.ipynb` membaca hasil tanpa training ulang dengan kedua flag False. Fine-tuning membuka convolution block5 pada indeks features 28, 30, 32, dan 34.
-
-## Perbandingan akhir dan reproduksibilitas
+## Perbandingan historis dan reproduksibilitas
 
 Ringkasan khusus tiga arsitektur tersedia pada [perbandingan ResNet50, VGG16, dan VGG19](docs/perbandingan_model.md).
 
@@ -153,7 +151,7 @@ Citra belum mendapat preprocessing backbone. Dataset PyTorch mengubah NHWC menja
 
 `metadata.json` menyimpan catatan saat preprocessing, konfigurasi, versi, hash sumber/output, dan kontrak array. Metadata serta protokol beku dipertahankan sebagai rekam eksperimen; keputusan penggunaan data terbaru tercatat pada [keputusan klien](docs/konfirmasi_dataset_klien.md). Manifest, scaler, feature order, statistik split, laporan clipping, audit, dan hasil QA juga tersedia. Notebook model wajib memakai hasil ini tanpa split atau fit scaler ulang. Jika sumber dikoreksi klien, regenerasi seluruh preprocessing sebelum eksperimen.
 
-Backbone memakai Global Average Pooling dan head Linear 128/64 yang sama. Feature extraction membekukan backbone ImageNet. Fine-tuning memulai dari checkpoint feature extraction terbaik, membuka layer4 ResNet50, dan mempertahankan Batch Normalization dalam mode eval. [TorchVision ResNet50](https://docs.pytorch.org/vision/0.24/models/generated/torchvision.models.resnet50.html) memakai varian V1.5. Checkpoint `.pt` disimpan sebagai state_dict dan dimuat dengan weights_only=True. Konfigurasi ada di `src/config.py`.
+Backbone memakai Global Average Pooling dan head Linear 128/64 yang sama. Feature extraction membekukan backbone ImageNet. FT baru memakai ImageNet dan head baru tanpa checkpoint FE, membuka layer4 ResNet50 atau block5 VGG16/VGG19; Batch Normalization ResNet50 tetap eval/beku pada FE dan FT. FT dari checkpoint FE hanya berlaku pada hasil historis. [TorchVision ResNet50](https://docs.pytorch.org/vision/0.24/models/generated/torchvision.models.resnet50.html) memakai varian V1.5. Checkpoint `.pt` disimpan sebagai state_dict dan dimuat dengan weights_only=True. Konfigurasi ada di `src/config.py`.
 
 ## Evaluasi dan keterbatasan
 
@@ -167,4 +165,4 @@ Dataset berasal dari 411 ID, tetapi ID berbeda belum menjamin observasi independ
 - Schema, AHI, atau kunci tidak konsisten: baca audit, periksa sumber, dan hentikan tahap terkait; jangan mengoreksi target secara otomatis.
 - Import paket gagal: pastikan interpreter/kernel sesuai environment dan jalankan `python -m pip check`.
 - CUDA tidak terdeteksi: periksa interpreter `.venv`, build torch yang memuat CUDA, dan driver melalui `nvidia-smi`; jangan mengubah driver secara otomatis.
-- VRAM habis: kurangi batch 8 ke 4 lalu 2, batasi prefetch, dan pertimbangkan ukuran citra melalui konfigurasi. Jalankan ulang smoke test sebelum full training.
+- VRAM habis: periksa penggunaan GPU dan cleanup antar kandidat. Batch 8 serta input 224 x 224 tetap dalam protokol tuning; perubahan memerlukan pencatatan protokol dan smoke ulang sebelum full training.

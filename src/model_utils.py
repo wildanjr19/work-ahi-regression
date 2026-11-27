@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import models
 
 from .audit import command_result, file_hash
-from .config import ARTIFACTS_DIR, FEATURE_COLUMNS, POSITIONS, PROCESSED_DIR, SMOKE, TRAINING, TrainingConfig
+from .config import ARTIFACTS_DIR, FEATURE_COLUMNS, POSITIONS, PROCESSED_DIR, SMOKE, TRAINING, TUNING_DIR, TrainingConfig, tuning_candidates
 from .evaluation import plot_diagnostics, prediction_table, save_evaluation
 from .preprocessing import save_json, validate_manifest
 
@@ -44,7 +44,8 @@ def set_seed(seed):
 def configure_runtime(config=TRAINING):
     set_seed(config.seed)
     torch.set_num_threads(config.intra_op_threads)
-    torch.set_num_interop_threads(config.inter_op_threads)
+    if torch.get_num_interop_threads() != config.inter_op_threads:
+        torch.set_num_interop_threads(config.inter_op_threads)
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
@@ -198,6 +199,17 @@ def build_regression_model(architecture, image_shape, weights, train_backbone, c
     return AHIRegressor(architecture, weights, "scratch" if train_backbone else "feature_extraction", config)
 
 
+def build_candidate_model(architecture, experiment, config):
+    """Bentuk kandidat tuning baru; FT langsung tidak memuat checkpoint FE."""
+    if architecture not in ARCHITECTURES or experiment not in EXPERIMENTS:
+        raise ValueError("Invalid candidate architecture or experiment")
+    if config not in tuning_candidates():
+        raise ValueError("Candidate configuration must match the agreed grid and fixed protocol")
+    set_seed(config.seed)
+    weights = None if experiment == "scratch" else config.pretrained_weights
+    return AHIRegressor(architecture, weights=weights, phase=experiment, config=config)
+
+
 def configure_fine_tuning(model, architecture, config=TRAINING):
     if model.architecture != architecture:
         raise ValueError("Architecture differs from checkpoint")
@@ -212,8 +224,16 @@ def parameter_counts(model):
     return {"total": total, "trainable": trainable, "non_trainable": total - trainable}
 
 
-def load_checkpoint(path, device="cpu"):
+def load_checkpoint(path, device="cpu", *, expected=None):
+    if expected is not None and file_hash(path) != expected["checkpoint_sha256"]:
+        raise ValueError("Checkpoint checksum differs")
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+    if expected is not None:
+        for name, value in expected.items():
+            if name != "checkpoint_sha256" and (
+                name not in checkpoint or json.dumps(checkpoint[name], sort_keys=True) != json.dumps(value, sort_keys=True)
+            ):
+                raise ValueError(f"Checkpoint protocol differs: {name}")
     config = TrainingConfig(**checkpoint["config"])
     model = AHIRegressor(checkpoint["architecture"], weights=None, phase=checkpoint["experiment"], config=config)
     model.load_state_dict(checkpoint["model_state_dict"], strict=True)
@@ -271,9 +291,13 @@ def epoch_pass(model, loader, device, criterion, optimizer=None, scaler=None, co
 
 
 def train_experiment(architecture, experiment, data, contract, output_root, mode="smoke",
-                     feature_checkpoint=None, full_training_approved=False, config=TRAINING, smoke=SMOKE):
+                     feature_checkpoint=None, full_training_approved=False, config=TRAINING, smoke=SMOKE,
+                     initialization="historical"):
+    """Loop bersama; jalur historical mempertahankan FT dari parent FE."""
     if mode not in ("smoke", "full") or experiment not in EXPERIMENTS:
         raise ValueError("Invalid run mode or experiment")
+    if initialization not in ("historical", "independent"):
+        raise ValueError("Invalid initialization protocol")
     if mode == "full":
         if not full_training_approved:
             raise PermissionError("Full training requires explicit approval after smoke testing")
@@ -283,17 +307,29 @@ def train_experiment(architecture, experiment, data, contract, output_root, mode
         raise ValueError("Development runner accepts train and validation only; no test set")
     if config.optimizer != "adam" or config.loss not in ("mse", "huber"):
         raise ValueError("Supported protocol: Adam with MSE or validation-selected Huber")
+    independent = initialization == "independent"
+    output_dir = Path(output_root).resolve() if independent else Path(output_root) / experiment
+    if independent:
+        if feature_checkpoint is not None or config not in tuning_candidates():
+            raise ValueError("Independent candidates require the agreed grid and no FE parent")
+        if not output_dir.is_relative_to(TUNING_DIR.resolve()) or output_dir == TUNING_DIR.resolve():
+            raise ValueError("Candidate output must be inside artifacts/tuning")
+        if not contract.get("tuning_protocol_sha256") or not contract.get("code_hashes"):
+            raise ValueError("Independent candidates require a recorded tuning protocol")
+        output_dir.mkdir(parents=True, exist_ok=False)
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
     gc.collect()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == "cuda":
         torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
     set_seed(config.seed)
-    output_dir = Path(output_root) / experiment
-    output_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     parent_hash = None
-    if experiment == "fine_tuning":
+    if independent:
+        model = build_candidate_model(architecture, experiment, config).to(device)
+    elif experiment == "fine_tuning":
         if feature_checkpoint is None:
             raise ValueError("Fine-tuning requires the best feature-extraction checkpoint")
         feature_checkpoint = Path(feature_checkpoint)
@@ -311,12 +347,17 @@ def train_experiment(architecture, experiment, data, contract, output_root, mode
         weights = None if experiment == "scratch" else config.pretrained_weights
         model = build_regression_model(architecture, data["train"]["images"].shape[1:], weights, experiment == "scratch", config).to(device)
     learning_rate = config.fine_tuning_learning_rate if experiment == "fine_tuning" else config.initial_learning_rate
-    optimizer = torch.optim.Adam((parameter for parameter in model.parameters() if parameter.requires_grad), lr=learning_rate)
+    optimizer = torch.optim.Adam((parameter for parameter in model.parameters() if parameter.requires_grad),
+                                 lr=learning_rate, weight_decay=config.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=config.reduce_lr_factor,
                                                          patience=config.reduce_lr_patience, min_lr=config.min_learning_rate)
     scaler = torch.amp.GradScaler("cuda", enabled=config.mixed_precision and device.type == "cuda", init_scale=config.amp_initial_scale)
     criterion = nn.MSELoss() if config.loss == "mse" else nn.HuberLoss()
     counts, bn_before = parameter_counts(model), bn_snapshot(model)
+    if independent:
+        save_json(output_dir / "progress.json", {"status": "running", "parameters": counts,
+                  "config": asdict(config), "data_fingerprint": contract["fingerprint"],
+                  "protocol_sha256": contract["tuning_protocol_sha256"], "initialization": initialization})
     batch_size = smoke.batch_size if mode == "smoke" else config.batch_size
     selected = {}
     for split, payload in data.items():
@@ -346,6 +387,9 @@ def train_experiment(architecture, experiment, data, contract, output_root, mode
                    "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
                    "scheduler_state_dict": scheduler.state_dict(), "scaler_state_dict": scaler.state_dict(),
                    "epoch": epoch + 1, "data_fingerprint": contract["fingerprint"], "mode": mode}
+        if independent:
+            payload.update(initialization=initialization, protocol_sha256=contract["tuning_protocol_sha256"],
+                           code_hashes=contract["code_hashes"])
         if improved:
             torch.save(payload, checkpoint)
             best, bad_epochs = monitored, 0
@@ -368,7 +412,13 @@ def train_experiment(architecture, experiment, data, contract, output_root, mode
     bn_unchanged = all(torch.equal(value, bn_after[key]) for key, value in bn_before.items())
     if experiment != "scratch" and not bn_unchanged:
         raise AssertionError("Batch Normalization state changed during transfer learning")
-    loaded = load_checkpoint(checkpoint, device)
+    expected = None
+    if independent:
+        expected = {"checkpoint_sha256": file_hash(checkpoint), "architecture": architecture,
+                    "experiment": experiment, "config": asdict(config), "mode": mode,
+                    "data_fingerprint": contract["fingerprint"], "initialization": initialization,
+                    "protocol_sha256": contract["tuning_protocol_sha256"], "code_hashes": contract["code_hashes"]}
+    loaded = load_checkpoint(checkpoint, device, expected=expected)
     model.load_state_dict(loaded.state_dict())
     original_predictions = predict_model(model, validation_loader, device)
     loaded_predictions = predict_model(loaded, validation_loader, device)
@@ -390,6 +440,9 @@ def train_experiment(architecture, experiment, data, contract, output_root, mode
               "negative_validation_predictions": int((loaded_predictions < 0).sum()),
               "input_normalization": "raw NCHW pixels /255 then TorchVision ImageNet mean/std; no extra resize/crop",
               "figures": figures, "versions": {name: importlib.metadata.version(name) for name in ("torch", "torchvision", "numpy", "pandas", "scikit-learn")}}
+    if independent:
+        result.update(initialization=initialization, protocol_sha256=contract["tuning_protocol_sha256"],
+                      code_hashes=contract["code_hashes"], best_epoch=int(np.argmin(history[config.checkpoint_monitor])) + 1)
     save_json(output_dir / "history.json", history)
     save_json(output_dir / "run.json", result)
     del model, loaded, optimizer, payload, train_loader, validation_loader

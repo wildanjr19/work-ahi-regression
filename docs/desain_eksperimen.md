@@ -1,6 +1,6 @@
 # Desain eksperimen regresi AHI dengan hyperparameter tuning
 
-Kesepakatan 27 November 2026. Dokumen ini menjadi acuan eksperimen tuning baru dan penjelasan kepada klien. Implementasi serta pelatihan baru belum dijalankan. Untuk eksperimen baru, FT langsung menggantikan ketentuan FT dari checkpoint FE pada protokol lama; laporan PHASE 0 sampai PHASE 5 tetap menjadi catatan historis.
+Kesepakatan 27 November 2026. Dokumen ini menjadi acuan eksperimen tuning baru dan penjelasan kepada klien. Konfigurasi/model, runner, integrasi notebook, dan smoke aktual sudah diuji; full grid selesai dengan 108/108 kandidat berhasil. Evaluasi test tuning belum dijalankan. Lihat [laporan full grid](tuning_full_report.md). Lihat [laporan model](tuning_model_report.md), [runner](tuning_runner_report.md), dan [integrasi notebook](tuning_notebook_report.md). Untuk eksperimen baru, FT langsung menggantikan ketentuan FT dari checkpoint FE pada protokol lama; laporan PHASE 0 sampai PHASE 5 tetap menjadi catatan historis.
 
 ## 1. Tujuan dan data
 
@@ -49,7 +49,7 @@ Laporkan MAE, MSE, RMSE, dan R2 keseluruhan serta per posisi, beserta jumlah sam
 
 Setiap kandidat menyimpan konfigurasi, status termasuk kegagalan, seed, checkpoint, history, metrik/prediksi validation, waktu, jumlah parameter trainable, versi library, hardware, dan hash data/kode. Konfigurasi sama tidak menjamin waktu, epoch aktual, atau jumlah parameter sama; biaya aktual wajib dilaporkan.
 
-Pelaksanaan tetap melalui `02_ResNet50.ipynb`, `03_VGG16.ipynb`, dan `04_VGG19.ipynb`, dengan logika tuning bersama di `src/`. Notebook `05_Model_Comparison.ipynb` membaca hasil terpilih tanpa training ulang CNN. Tuning default nonaktif. Smoke test memvalidasi pipeline terlebih dahulu; full training memerlukan persetujuan setelah hasil smoke test dilaporkan.
+Pelaksanaan tetap melalui `02_ResNet50.ipynb`, `03_VGG16.ipynb`, dan `04_VGG19.ipynb`, dengan logika tuning bersama di `src/`. Notebook `05_Model_Comparison.ipynb` membaca hasil terpilih tanpa training ulang CNN. Default API tuning nonaktif. Flag notebook saat persiapan push dipertahankan aktif/full sesuai arahan pengguna; pembacaan hasil saja memerlukan RUN_TUNING=False atau eksekusi sel hasil tersimpan. Flag tersebut tidak memberi persetujuan baru untuk pengulangan full training. Smoke test memvalidasi pipeline terlebih dahulu; full training memerlukan persetujuan setelah hasil smoke test dilaporkan.
 
 Simpan hasil baru terpisah dari hasil historis, direncanakan di `artifacts/tuning/`. Arsipkan versi kode/protokol lama sebelum perubahan implementasi agar riwayat dapat ditelusuri. Notebook sumber tetap tanpa output; notebook beroutput dan data pasien tetap lokal.
 

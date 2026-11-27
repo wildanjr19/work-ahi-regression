@@ -1,115 +1,95 @@
 # Panduan proyek regresi AHI
 
-## Status dan cakupan
+## Acuan dan status
 
-Sumber kebutuhan: `BRIEF.md`. Bahasa dokumentasi dan notebook adalah Bahasa Indonesia formal. Nama variabel, fungsi, dan class menggunakan Bahasa Inggris.
+- Bahasa dokumentasi/notebook: Bahasa Indonesia formal; nama variabel, fungsi, dan class: Bahasa Inggris. Markdown harus ringkas, jelas, dan tanpa pengulangan.
+- Baca `docs/desain_eksperimen.md` dan `docs/search_space.md` sebelum mengubah model/tuning. Kesepakatan 27 November 2026 menggantikan ketentuan model lama yang berbeda dalam `BRIEF.md` dan laporan fase, termasuk FT dari checkpoint FE.
+- PHASE 0 sampai PHASE 5 selesai. Konfigurasi/model, runner, integrasi notebook, smoke aktual, dan full grid tuning selesai: 108 kandidat berhasil, tanpa kegagalan. Evaluasi test tuning belum dijalankan. Lihat `docs/tuning_full_report.md`. Rujukan: `docs/tuning_model_report.md`, `docs/tuning_runner_report.md`, dan `docs/tuning_notebook_report.md`. Arsip prasyarat: 571 berkas, 82 aset beku, 88 baris metrik cocok, 32 tes lulus; angka ini historis.
+- Rujukan wajib sesuai pekerjaan: `docs/konfirmasi_dataset_klien.md` untuk keputusan data; `docs/preprocessing.md` dan `docs/phase_1_report.md` untuk preprocessing; `docs/arsip_verifikasi.md` untuk integritas; `docs/phase_0_report.md` sampai `docs/phase_5_report.md` untuk riwayat implementasi/hasil.
+- Setelah setiap tahap, laporkan pekerjaan, perubahan file, pengujian aktual, masalah, keputusan metodologi, dan rekomendasi; tunggu persetujuan sebelum tahap berikutnya. Full training baru memerlukan persetujuan setelah laporan smoke test; persetujuan training historis tidak berlaku.
+- Jangan memasang driver/WSL atau mengubah konfigurasi sistem tanpa persetujuan.
 
-Aturan tetap laporan Markdown (`.md`): tulis ringkas, padat, dan jelas. Cantumkan hanya informasi penting; hindari pengulangan, penjelasan bertele-tele, dan detail yang tidak diperlukan.
+## Data, privasi, dan integritas
 
-PHASE 0 sampai PHASE 5 selesai secara teknis. Sembilan CNN, baseline median/Ridge, perbandingan, pembekuan pilihan validation, dan evaluasi test telah dijalankan. Pengguna mengizinkan PHASE 5 melalui pesan "kerjakan next phase bro!". Laporan ada di `docs/phase_0_report.md` sampai `docs/phase_5_report.md`. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan.
+- Gunakan hanya `data/Flow Patient.xlsx`, `data/PulseRate.xlsx`, dan `data/Pleth.xlsx`; tanpa file `_smote` atau SMOTE. Jangan mengubah/menghapus workbook asli; audit mencatat SHA-256 sebelum/sesudah pembacaan.
+- Jangan mengunggah data pasien, ID, notebook berisi data, atau artifacts tanpa izin. `data/` dan `artifacts/` diabaikan Git kecuali `.gitkeep`; dokumentasi yang dibagikan hanya memuat agregat.
+- Notebook sumber `notebooks/` harus tanpa output/execution count. Notebook beroutput tetap lokal; bersihkan informasi pasien sebelum commit/berbagi.
+- Pertahankan dataset, target, preprocessing, manifest, metadata, hasil historis, dan protokol beku. Jangan memperbarui hash lama agar cocok dengan kode baru. Hasil baru di `artifacts/tuning/`; jangan menimpa `artifacts/experiments/`, `artifacts/smoke_tests/`, `artifacts/comparison/`, atau notebook historis di `artifacts/notebooks/`.
+- Snapshot lama: `artifacts/archives/pre_tuning_2026-11-27/`. Sebelum kode berubah, `verify_frozen_protocol` memverifikasi aset aktif; setelah perubahan kode, periksa snapshot dengan verifier arsip. Snapshot berada pada drive yang sama dan memerlukan workbook asli, bukan cadangan data lengkap pada media terpisah.
 
-Perubahan arahan pengguna pada 26 November 2026: gunakan PyTorch/TorchVision dengan CUDA native Windows untuk seluruh model, menggantikan ketentuan TensorFlow/Keras dalam brief asli. Arsitektur dan protokol penelitian tetap. Implementasi ResNet50 dan smoke test tiga skenario sudah berjalan di GPU. Lihat `docs/phase_2_report.md`.
+## Kontrak data dan split
 
-Setelah setiap phase, laporkan pekerjaan, perubahan file, pengujian aktual, masalah, keputusan metodologi, dan rekomendasi berikutnya. Tunggu persetujuan pengguna sebelum phase berikutnya. Full training memerlukan persetujuan setelah smoke test. Jangan memasang driver, WSL, atau mengubah konfigurasi sistem tanpa persetujuan.
+- Tugas: regresi AHI kontinu; satu sampel = `(id, Posisi)`, bukan baris IMF. Gunakan complete-case ketiga sensor; laporkan pasangan yang dikeluarkan beserta alasan.
+- Pertahankan `id` sebagai string termasuk nol awal. Rapikan whitespace header/metadata tanpa mengubah sumber. Validasi kunci `(id, Posisi, IMF)`, sheet/posisi, numerik finite, dan konsistensi AHI dalam/antar sensor. Konflik target menghentikan tahap terkait; jangan merata-ratakan target.
+- Arahan klien: seluruh 411 ID tetap tercakup; hanya 16 pasangan tanpa PulseRate dikeluarkan. Pertahankan AHI ekstrem, prediksi negatif, dan error besar; jangan clipping target/prediksi atau menghapus hasil buruk.
+- Fitur identik ditemukan pada 160 sampel/80 kelompok/62 ID; lima kelompok memiliki AHI berbeda antar-ID. Temuan ini tidak membuktikan oversampling atau kesamaan identitas; persetujuan penggunaan data tidak memverifikasi asal/validitas klinis label.
+- Split memakai komponen terhubung ID dengan fitur ketiga sensor identik pada posisi sama, mengabaikan target. Seluruh posisi satu ID dan salinan fitur harus bersama. Jangan menggabungkan identitas/target; GroupShuffleSplit berbasis ID saja tidak cukup.
+- Gunakan manifest yang sama untuk seluruh CNN/baseline: seed 42, rasio awal 70/15/15, 380 komponen; train 755 sampel/287 ID, validation 157/59, test 179/65. Laporkan rasio aktual sampel, ID, dan komponen, termasuk dampak pembulatan.
+- Assert nol overlap ID, komponen, fingerprint mentah, dan input encoding. Jangan split ulang atau mengubah seed untuk distribusi/performa. Jika klien memperbaiki sumber, catat protokol baru dan regenerasi seluruh preprocessing sebelum memakai hasil model.
 
-## Data dan privasi
+## Input dan preprocessing
 
-- Gunakan hanya `data/Flow Patient.xlsx`, `data/PulseRate.xlsx`, dan `data/Pleth.xlsx`. Jangan menggunakan file `_smote`.
-- Jangan mengubah atau menghapus dataset asli. Audit mencatat SHA-256 sebelum dan sesudah pembacaan.
-- Jangan mengunggah data pasien, ID, output notebook berisi data, atau artifacts ke layanan eksternal tanpa izin.
-- Seluruh `data/` dan `artifacts/` diabaikan Git, kecuali `.gitkeep`. Dokumentasi yang boleh dibagikan hanya memuat statistik agregat.
-- Notebook dapat memuat ID di output lokal. Bersihkan output yang mengandung informasi pasien sebelum commit atau berbagi.
-- `id` tetap string, termasuk nol di awal. Standardisasi whitespace header dan metadata tanpa mengubah file sumber.
+- Gunakan `artifacts/processed_data/{train,validation,test}.npz`, `metadata.json`, dan manifest tersimpan. Tuning hanya memuat train/validation.
+- Seluruh transformasi yang dipelajari, termasuk scaling/imputasi, hanya fit pada train. Percentile scaling 1/99 per fitur/sensor memakai baris IMF nyata training; laporkan fitur konstan dan clipping tiap subset. Statistik audit bukan parameter preprocessing.
+- Setiap sensor membentuk matriks 50 x 11 menurut indeks IMF numerik. Padding hanya untuk IMF hilang, tanpa interpolasi. AHI, ID, posisi, dan indeks IMF bukan 11 fitur sensor.
+- Fitur scaled float32 0..1 dipetakan ke piksel uint8 1..255, padding 0; mask disimpan terpisah, target asli float64. Channel: Flow, PulseRate, Pleth. Resize nearest-neighbor ke 224 x 224 x 3 melalui konfigurasi.
+- Posisi masuk lewat one-hot terpisah: Supine, Left, Right. Simpan input, mask, posisi, target, metadata sampel, feature order, scaler, manifest, konfigurasi, dan audit; periksa shape, finite, serta keselarasan input-target.
+- Piksel tersimpan belum dinormalisasi backbone. Model membagi 255 tepat sekali lalu memakai mean/std bobot TorchVision; tanpa BGR, normalisasi ganda, atau resize/crop tambahan.
+- Feature image adalah pseudo-image; indeks IMF sama antar sensor tidak membuktikan frekuensi sama atau sinkronisasi fisiologis.
+- Baseline median training dan Ridge memakai split/sampel sama; input Ridge = flattened scaled_features, mask IMF, dan posisi, tanpa ID/target. StandardScaler hanya fit pada train.
 
-## Kontrak metodologi
+## Model dan grid search baru
 
-- Tugas utama adalah regresi AHI kontinu. Jangan mengganti AHI dengan kelas tingkat keparahan.
-- Satu sampel adalah satu pasangan `(id, Posisi)`, bukan satu baris IMF.
-- Eksperimen utama menggunakan complete-case ketiga sensor. Laporkan semua pasangan yang dikeluarkan dan alasannya.
-- Validasi kunci `(id, Posisi, IMF)`, sheet/posisi, nilai numerik finite, serta konsistensi AHI dalam dan antar sensor sebelum melanjutkan.
-- Target yang berbeda dalam satu pasangan pasien-posisi atau antar sensor menghentikan tahap terkait. Jangan merata-ratakan target secara otomatis.
-- AHI ekstrem dan prediksi negatif harus dilaporkan. Jangan clipping target, menghapus error buruk, atau mengubah prediksi diam-diam.
-- AHI, ID, posisi, dan indeks IMF tidak masuk ke 11 kolom fitur sensor. Posisi masuk melalui input one-hot terpisah dengan urutan Supine, Left, Right.
-- Pipeline tidak menerapkan SMOTE; gunakan ketiga workbook yang ditetapkan.
+- PyTorch/TorchVision dengan CUDA native Windows menggantikan TensorFlow/Keras. ResNet50 (varian TorchVision V1.5), VGG16, dan VGG19 masing-masing memakai satu model semua posisi.
+- Sembilan kondisi = tiga arsitektur x scratch/FE/FT. Setiap kandidat diinisialisasi baru, tanpa meneruskan bobot kandidat lain. Backbone pretrained dipatok ke `IMAGENET1K_V1`, bukan `DEFAULT`.
 
-## Temuan yang harus ditangani sebelum split
+| Strategi | Inisialisasi dan bobot yang dilatih |
+|---|---|
+| Scratch | Backbone acak dan head baru; seluruh bobot dilatih |
+| FE | Backbone ImageNet beku; hanya head baru dilatih |
+| FT langsung | Backbone ImageNet dan head baru; head serta blok akhir dilatih sejak awal, tanpa checkpoint FE atau pelatihan head pendahuluan |
 
-Audit PHASE 0 menemukan 160 sampel complete-case dalam 80 kelompok dengan fitur ketiga sensor identik pada posisi yang sama, melibatkan 62 ID. Lima kelompok memiliki AHI berbeda antar-ID. Kesamaan telah diverifikasi ulang dengan perbandingan elemen matriks dari Excel. Ini belum membuktikan oversampling atau identitas pasien yang sama.
+- FT membuka `layer4` ResNet50, block5 VGG16 mulai `features[24]`, atau block5 VGG19 mulai `features[28]`; blok awal beku. Batch Normalization ResNet50 beku/eval pada FE dan FT.
+- Semua model: `nn.Module` dua input, classifier pretrained dibuang, AdaptiveAvgPool2d(1), concatenate posisi, Linear 128/64 dengan ReLU dan dua dropout bernilai sama, output Linear 1. Output/loss float32.
+- Grid sama untuk semua kondisi: learning rate awal `1e-6, 1e-5, 1e-4, 1e-3` x dropout `0.1, 0.3, 0.5`. Uji 12 kombinasi/kondisi = 108 pelatihan kandidat di luar smoke test.
+- Tetap: Adam, MSE, batch 8, weight decay 0, maksimal 50 epoch, early stopping patience 10, restore checkpoint terbaik berdasarkan MSE validation. ReduceLROnPlateau: faktor 0,5, patience 5, minimum LR `1e-7`. Reset seed 42 tiap kandidat; hentikan/catat kandidat nonfinite.
+- AMP/GradScaler aktif pada CUDA; catat skipped optimizer steps. Windows memakai DataLoader `num_workers=0`, prefetch terbatas; lakukan del/garbage collection dan `torch.cuda.empty_cache` antar eksperimen.
+- Checkpoint `.pt` memuat state_dict/konfigurasi; load dengan `weights_only=True`. Validasi inisialisasi, arsitektur, mode smoke/full, konfigurasi kandidat, dan fingerprint preprocessing; FT baru tidak memuat parent FE.
+- Konfigurasi bersama di `src/config.py`, grid search bersama di `src/`; perbarui `02_ResNet50.ipynb`, `03_VGG16.ipynb`, dan `04_VGG19.ipynb` tanpa duplikasi helper. Tuning/full training default nonaktif.
+- Runner baru: `src.tuning.run_grid_search()`, default `enabled=False`, mode `smoke`. Smoke memakai LR `1e-3`/dropout `0.3` pada tiga strategi; full memakai seluruh grid dan memerlukan `full_training_approved=True`. Ringkasan smoke tidak boleh dipakai memilih model.
+- Tiga notebook memanggil runner tanpa loop training tersalin. Sesuai arahan pengguna saat persiapan push, flag notebook dipertahankan pada `RUN_TUNING=True`, `RUN_MODE='full'`, dan `FULL_TRAINING_APPROVED=True`; default API runner tetap nonaktif/smoke. Namespace `artifacts/tuning/grid_v1/` sudah berisi hasil dan menolak penimpaan. Untuk membaca hasil saja, nonaktifkan `RUN_TUNING` atau jalankan sel hasil tersimpan. Pengulangan full training tetap memerlukan persetujuan baru, terlepas dari flag tersimpan. Salinan notebook smoke beroutput berada di `artifacts/tuning/notebook_checks/`, bukan direktori notebook historis.
+- Pisahkan smoke dan hasil penuh per arsitektur di `artifacts/tuning/`; runner tuning menolak test. Smoke memeriksa inisialisasi mandiri, bobot/Batch Normalization beku, pembaruan blok FT, checkpoint/reload, dan larangan akses test.
+- Simpan tiap kandidat termasuk gagal: status, seed, konfigurasi, checkpoint, history, metrik/prediksi validation, waktu, parameter trainable, versi library, hardware, dan hash data/kode. Laporkan biaya/epoch aktual; waktu FT langsung tidak memasukkan FE terpisah.
 
-Arahan klien yang disampaikan pengguna pada 27 November 2026: sertakan seluruh 411 ID dan pertahankan data serta target asli. Preprocessing complete-case yang sudah dijalankan memenuhi cakupan ID tersebut; 16 pasangan ID-posisi tanpa PulseRate dikeluarkan, tanpa mengeluarkan ID. Implementasi mengelompokkan ID yang terhubung oleh fitur identik ketiga sensor pada posisi yang sama ke komponen terhubung. Aturan ini mengabaikan target dan menjaga seluruh posisi milik satu ID tetap bersama. Jangan menggabungkan identitas atau merata-ratakan AHI. GroupShuffleSplit hanya berbasis ID tidak cukup mencegah salinan fitur antar subset pada data ini. Lima kelompok dengan target berbeda dan AHI ekstrem tetap dicatat sebagai temuan. Keputusan ini menyetujui penggunaan data apa adanya, tanpa menyatakan asal atau validitas klinis label telah diverifikasi. Lihat `docs/konfirmasi_dataset_klien.md`. Metadata dan aset eksperimen beku tidak ditulis ulang agar hash historis tetap valid.
+## Pemilihan, evaluasi, dan riwayat
 
-Hasil preprocessing: 411 ID membentuk 380 komponen; train 755 sampel/287 ID, validation 157/59, test 179/65. Tidak ada overlap ID, komponen, fingerprint mentah, atau input hasil encoding antar subset. Jangan mengubah seed/split untuk memperbaiki distribusi target atau performa. Jika sumber diperbaiki klien, regenerasi seluruh preprocessing dan catat perubahan protokol sebelum memakai hasil model.
+- Validation dipakai untuk scheduler, early stopping, tuning, dan seluruh pemilihan. Pilih konfigurasi tiap kondisi lalu CNN utama dari sembilan kondisi dengan RMSE validation terkecil, MAE jika seri.
+- Bekukan konfigurasi/checkpoint sebelum evaluasi test. Jangan refit train+validation, memilih model dari test, atau memperluas grid berdasarkan test.
+- Test sudah terpapar pada PHASE 5. Evaluasi ulang adalah evaluasi lanjutan setelah paparan; evaluasi independen baru memerlukan data yang benar-benar belum digunakan.
+- Ringkasan memakai `src/reporting.py` dengan fingerprint sama. `05_Model_Comparison.ipynb` membaca hasil terpilih tanpa training ulang CNN; `RUN_FINAL_EVALUATION=False` secara default. Runner evaluasi menolak direktori hasil yang sudah ada.
+- Laporkan MAE, MSE, RMSE, R2 keseluruhan/per posisi beserta jumlah sampel; R2 subset tidak memadai dinyatakan tidak terdefinisi. Jika memakai CI, bootstrap kelompok pasien dengan mempertimbangkan komponen salinan.
+- Plot akademik minimal 300 DPI; Bland-Altman menyebut pengukuran berulang pasien. Kesimpulan dibatasi kandidat, satu split/seed, dan keterbatasan data. Gunakan hasil aktual; smoke bukan hasil penelitian; jangan mengklaim validasi klinis atau menjamin peningkatan performa.
+- Hasil historis dan diagnostik lengkap tetap dirujuk melalui laporan fase. FT lama berasal dari checkpoint FE; validasi parent FE dan biaya kumulatif FE+FT hanya berlaku pada hasil lama. PHASE 5 memilih ResNet50/scratch dan baseline DummyMedian dari validation; test tidak mengubah pilihan. Rincian Ridge, prediksi negatif, epoch, serta metrik historis tidak menjadi aturan tuning baru.
 
-## Split, scaling, dan feature image
+## Pemeriksaan dan pelaksanaan
 
-- Rasio awal 70/15/15 dengan seed 42, berbasis komponen pasien dan salinan. Laporkan rasio aktual pasien, kelompok, serta sampel; pembulatan jumlah kelompok dapat menggeser rasio.
-- Simpan satu split manifest untuk seluruh arsitektur dan baseline. Assertion harus melarang overlap ID, dan jika diterapkan, overlap komponen salinan.
-- Training saja menentukan parameter scaling, imputasi, dan transformasi yang dipelajari. Validation/test hanya ditransformasi. Statistik PHASE 0 adalah audit integritas, bukan parameter preprocessing.
-- Pilihan awal adalah percentile scaling 1/99 per fitur per sensor, fit hanya pada baris IMF nyata di training. Laporkan fitur konstan dan clipping tiap subset.
-- Susun setiap sensor menjadi matriks 50 x 11 berdasarkan indeks IMF numerik. Padding hanya untuk IMF yang tidak tersedia; jangan interpolasi IMF.
-- Encoding terimplementasi: fitur nyata hasil scaling 0..1 dipetakan ke piksel uint8 1..255, padding 0; mask dan fitur scaled float32 disimpan terpisah. Target tetap float64 tanpa transformasi.
-- Urutan channel: Flow, PulseRate, Pleth. Resize nearest-neighbor ke 224 x 224 x 3, ukuran configurable.
-- Simpan piksel sebelum preprocessing backbone. Model PyTorch membagi piksel dengan 255 tepat sekali, lalu memakai mean/std dari bobot TorchVision. Jangan konversi BGR, melakukan normalisasi ganda, atau mengulang resize/crop.
-- Feature image adalah pseudo-image. IMF bernomor sama antar sensor tidak membuktikan kesamaan frekuensi atau sinkronisasi fisiologis.
-- Simpan data, mask, posisi one-hot, target, metadata sampel, feature order, scaler, manifest, konfigurasi, dan audit. Notebook model tidak boleh split ulang.
-- Gunakan `artifacts/processed_data/{train,validation,test}.npz` dan `metadata.json` bersama manifest. Citra belum melewati preprocessing backbone. Baseline memakai flattened scaled_features, mask, dan posisi; ID/target bukan fitur.
-- Hasil eksekusi notebook disimpan di `artifacts/notebooks/`; notebook sumber di `notebooks/` tetap tanpa output untuk mencegah data penelitian ikut ter-commit.
+Smoke aktual sembilan kondisi selesai dari tiga kernel baru: input 224 x 224, batch 8, sembilan optimizer update, nol skipped AMP steps; test NPZ tidak dimuat. Sebanyak 49 tes lulus. VGG19 FE menghasilkan delapan prediksi validation negatif pada smoke dan tetap dipertahankan. Hasil ini hanya diagnostik; lihat `docs/tuning_notebook_report.md`.
 
-## Model dan evaluasi
+Full grid selesai: 36 kandidat per arsitektur, 108 keseluruhan. Tahap berikutnya adalah peninjauan hasil validation dan pembekuan pilihan sebelum evaluasi test lanjutan; tunggu persetujuan tahap berikutnya. `train_experiment` menyediakan loop bersama; jalur default `historical` tetap dari parent FE, sedangkan runner tuning memakai `initialization="independent"`. Jangan membuat placeholder fase lanjutan atau menyalin data ke proyek bersarang; gunakan akar workspace.
 
-- Tiga arsitektur: ResNet50, VGG16, VGG19; masing-masing satu model gabungan semua posisi.
-- Masing-masing memiliki scratch, feature extraction, dan fine-tuning: sembilan kondisi eksperimen.
-- PyTorch nn.Module dua input; buang classifier pretrained, gunakan AdaptiveAvgPool2d(1), concatenate posisi, Linear 128/64 dengan dropout, output Linear 1 float32.
-- Head, split, metrik, dan protokol pemilihan harus sama. Konfigurasi berada di `src/config.py`.
-- Transfer learning memakai ImageNet. Feature extraction membekukan backbone. Fine-tuning mulai dari checkpoint terbaik feature extraction dan membuka bagian akhir saja, lalu compile ulang dengan learning rate rendah.
-- Untuk fine-tuning ResNet50, buka layer4 dan pertahankan Batch Normalization beku/eval. Untuk VGG, buka block5: indeks features mulai 24 pada VGG16 dan 28 pada VGG19.
-- Adam, MSE, batch 8, learning rate awal 1e-3 dan fine-tuning 1e-5, maksimal 50 epoch per skenario, early stopping patience 10, restore best weights, ReduceLROnPlateau, ModelCheckpoint, TerminateOnNaN.
-- AMP/GradScaler aktif pada CUDA; output dan loss tetap float32. Catat skipped optimizer steps. Gunakan DataLoader num_workers=0 pada Windows, prefetch terbatas, del/garbage collection dan torch.cuda.empty_cache antar eksperimen.
-- Bobot awal dipatok ke IMAGENET1K_V1, tidak memakai DEFAULT yang dapat berubah. Normalisasi RGB mengikuti mean/std bobot; spatial transform tetap nearest-neighbor dari PHASE 1 untuk mempertahankan grid fitur. TorchVision ResNet50 menggunakan varian V1.5.
-- Checkpoint `.pt` memuat state_dict dan konfigurasi; muat dengan weights_only=True. Fine-tuning harus memvalidasi hash checkpoint feature extraction, mode smoke/full, arsitektur, dan fingerprint preprocessing.
-- Smoke test tersimpan terpisah per arsitektur di `artifacts/smoke_tests/{ResNet50,VGG16,VGG19}/`; hasil ini tidak masuk perbandingan performa penelitian. Runner development hanya menerima train/validation dan menolak test set.
-- Notebook `03_VGG16.ipynb` telah dieksekusi dari kernel baru dengan full training nonaktif. Hasil ada di `artifacts/notebooks/03_VGG16.executed.ipynb`; QA memverifikasi bobot ImageNet feature extraction tetap, fine-tuning hanya mengubah block5, checkpoint/reload konsisten, dan test NPZ tidak dibaca. Sebanyak 25 tes lulus. Full VGG16 harus memakai parent feature extraction full, bukan smoke.
-- Hasil penuh ResNet50 tersimpan di `artifacts/experiments/ResNet50/`. Scratch terpilih dalam arsitektur ini berdasarkan RMSE validation; lihat `selection_validation.json`. Ini bukan pemilihan berdasarkan test atau kesimpulan antararsitektur.
-- Hasil penuh VGG16 tersimpan di `artifacts/experiments/VGG16/`. Fine-tuning terpilih dalam arsitektur ini berdasarkan RMSE validation. Checkpoint terbaik berasal dari epoch 8; tahap dilanjutkan sampai early stopping pada epoch 18. Model reload, metrik, pembekuan blok awal, parent feature extraction full, hash data/kode, dan pemilihan telah diverifikasi. Test NPZ tidak dimuat.
-- Hasil penuh VGG19 tersimpan di `artifacts/experiments/VGG19/`. Fine-tuning terpilih dalam arsitektur ini berdasarkan RMSE validation; checkpoint terbaik epoch 2, early stopping epoch 12. Feature extraction tetap memakai bobot ImageNet; fine-tuning hanya mengubah convolution block5 pada indeks 28/30/32/34 dari parent feature extraction full. Reload, metrik, pemilihan, hash data/kode, dan pembekuan blok awal diverifikasi. Sebanyak 26 tes lulus. Test NPZ tidak dimuat.
-- Gunakan `src/reporting.py` untuk merangkum tiga kondisi penuh dengan fingerprint yang sama. Kriteria tetap: RMSE validation terkecil, MAE jika seri. Waktu kumulatif fine-tuning memasukkan tahap feature extraction.
-- Notebook sumber default menonaktifkan full training agar tidak terulang. Notebook laporan dalam `artifacts/notebooks/`: `02_ResNet50.full_results.executed.ipynb`, `03_VGG16.full_results.executed.ipynb`, dan `04_VGG19.full_results.executed.ipynb` membaca hasil tersimpan dan tidak mengulang training. VGG16/VGG19 juga menonaktifkan penulisan ulang runtime/ringkasan smoke saat `RUN_SMOKE_TESTS=False`.
-- Gunakan validation untuk pemilihan, tuning, early stopping, dan pembekuan konfigurasi. Test hanya setelah protokol dibekukan. Jangan memilih model berdasarkan test.
-- Laporkan MAE, MSE, RMSE, dan R2 keseluruhan serta per posisi beserta jumlah sampelnya. R2 pada subset terlalu kecil harus dinyatakan tidak terdefinisi.
-- Simpan checkpoint, history, waktu, parameter trainable, versi library, hardware, konfigurasi, metrik, dan prediksi yang memungkinkan penghitungan ulang metrik.
-- Jika memakai confidence interval, bootstrap kelompok pasien; pertimbangkan komponen salinan sesuai keputusan split.
-- Baseline tambahan: DummyRegressor median training dan Ridge atau Random Forest dengan split dan sampel yang sama.
-- PHASE 5 memakai DummyMedian dan Ridge dengan 1.803 fitur: flattened scaled_features, mask IMF, one-hot posisi. StandardScaler hanya fit pada train. Alpha Ridge 0.1/1/10/100/1000 dipilih dari validation; alpha 1000 terpilih. Tidak ada refit train+validation atau training ulang CNN.
-- Hasil akhir ada di `artifacts/comparison/`. `frozen_protocol.json` dan `selection_validation.json` dibuat sebelum test NPZ dimuat sekali. CNN utama dan pemenang keseluruhan yang dipilih dari validation adalah ResNet50/scratch; baseline terpilih DummyMedian. Test 179 sampel/65 ID/57 komponen, dengan Supine 65, Left 58, Right 56. Hasil test tidak mengubah pemilihan.
-- Source `05_Model_Comparison.ipynb` default `RUN_FINAL_EVALUATION=False`; membaca artifacts. Runner menolak direktori hasil yang sudah ada untuk mencegah pengulangan fitting setelah test terpapar. Laporan dieksekusi dari kernel baru dalam `artifacts/notebooks/05_Model_Comparison.executed.ipynb`.
-- Test sekarang sudah terpapar. Jangan tuning memakai test sambil menyebut hasil baru sebagai evaluasi independen. Verifikasi aset beku dengan `verify_frozen_protocol`; jika memperbaiki sumber atau metode, catat protokol baru dan konsekuensi terhadap independensi evaluasi.
-- Ridge validation RMSE 459,18 didominasi satu sampel (99,60% kuadrat error), dengan ekstrapolasi fitur setelah StandardScaler. Diagnosis baca-saja tersimpan; model dan alpha tidak diubah setelah test. Prediksi negatif dipertahankan: Ridge 12 validation/9 test, VGG19 fine-tuning 1 test. Panel CNN pendamping hanya memperjelas skala grafik; data lengkap tetap tersedia.
-- Plot akademik minimal 300 DPI. Bland-Altman harus menyebut pengukuran berulang pasien.
-- Interpretasi memakai output aktual. Jangan membuat angka performa, menganggap smoke test sebagai hasil penelitian, atau mengklaim validasi klinis.
-
-## Rencana pelaksanaan
-
-| Phase | Implementasi dan validasi | Syarat selesai |
-|---|---|---|
-| 0 | Struktur direktori, audit aktual, config, requirements, panduan, laporan | Dataset tidak berubah; audit dan pengujian tercatat |
-| 1 | `src/preprocessing.py`, `notebooks/01_Preprocessing.ipynb`; putuskan grouping salinan; bangun manifest, scaler, matriks, mask, one-hot dan dataset tersimpan | Notebook dijalankan; tidak ada overlap pasien/salinan sesuai protokol; target dan input selaras; shape dan finite valid |
-| 2 | `src/model_utils.py`, `src/evaluation.py`, `02_ResNet50.ipynb`; scratch, feature extraction, fine-tuning | GPU dan VRAM diuji lewat smoke test; full eksperimen disetujui; reload model dan metrik diverifikasi |
-| 3 | `03_VGG16.ipynb` memakai pipeline tervalidasi | Smoke test lalu eksperimen; checkpoint, prediksi, history dan metrik tersimpan |
-| 4 | `04_VGG19.ipynb` memakai pipeline yang sama | Smoke test lalu eksperimen; artifacts tersimpan |
-| 5 | `05_Model_Comparison.ipynb`, baseline tabular, plot dan pembahasan aktual; README final | Sembilan kondisi tersedia, tidak training ulang CNN pada notebook perbandingan, QA reproduksibilitas selesai |
-
-Jangan membuat notebook atau modul fase lanjutan sebagai placeholder. Gunakan akar workspace yang sudah memiliki `data/`, tanpa menyalin ulang data ke folder proyek bersarang.
-
-## Pemeriksaan dan gaya implementasi
-
-Jalankan dari akar proyek:
+Jalankan pemeriksaan implementasi dari akar proyek dengan environment `.venv`:
 
 ```powershell
-python -m src.audit
-python -m unittest discover -s tests -v
-python -m pip check
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-Gunakan pathlib. Jangan hardcode path komputer, jumlah dataset sebagai hasil, atau nilai metrik. Hindari helper berulang antar notebook. Komentar cukup menjelaskan alasan atau batasan yang tidak terlihat dari kode. Pada sesi ini antislop dipilih dalam mode DURING; jangan menyimpan preferensi global tanpa permintaan pengguna.
+Perubahan dokumentasi saja cukup diperiksa lewat diff dan keselarasan acuan. Audit ulang memakai `src.audit.run_audit()` dengan direktori keluaran baru sesuai `docs/arsip_verifikasi.md`, agar audit lama tidak tertimpa. Verifikasi snapshot tanpa inferensi atau memuat array test:
 
-Environment aktif: `.venv` Python 3.11.0 dengan system-site-packages; nbformat 5.11.1 dan nbclient 0.11.0 dipasang lokal. Kernel: `osa-ahi-preprocessing`. Torch 2.9.0+cu130 dan TorchVision 0.24.0+cu130 memakai RTX 3060 Ti native Windows, CUDA 13.0. WSL tidak diperlukan. TensorFlow sempat dipasang lokal saat persiapan awal, tetapi tidak digunakan oleh pipeline model setelah perubahan arahan.
+```powershell
+.\.venv\Scripts\python.exe artifacts/archives/pre_tuning_2026-11-27/verify_archive.py
+```
+
+Gunakan pathlib; jangan hardcode path komputer, jumlah data sebagai hasil, atau metrik. Komentar menjelaskan alasan/batasan yang tidak terlihat dari kode. Antislop DURING berlaku pada sesi ini; jangan menyimpan preferensi global tanpa permintaan.
+
+Environment: `.venv` Python 3.11.0 dengan system-site-packages; kernel `osa-ahi-preprocessing`; Torch 2.9.0+cu130/TorchVision 0.24.0+cu130, RTX 3060 Ti, CUDA 13.0 native Windows. Detail persiapan/library notebook tersedia pada laporan fase; WSL tidak diperlukan.
