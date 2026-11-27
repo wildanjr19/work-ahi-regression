@@ -4,7 +4,7 @@ Proyek penelitian ini memprediksi AHI kontinu per pasien dan posisi tidur menggu
 
 Hasil historis: PHASE 0 sampai PHASE 5 selesai secara teknis. ResNet50 scratch terpilih dari validation sebelum test; pada 179 sampel test, MAE 17,9986, RMSE 29,0473, R2 0,1059. Seluruh 411 ID disertakan sesuai arahan klien; data dan target asli dipertahankan. Lihat [laporan PHASE 5](docs/phase_5_report.md), [PHASE 4](docs/phase_4_report.md), [PHASE 3](docs/phase_3_report.md), [PHASE 2](docs/phase_2_report.md), dan [aturan proyek](AGENTS.md).
 
-Tuning baru: tiga notebook memakai runner bersama dengan grid sama dan FT langsung dari ImageNet. Integrasi dan smoke aktual sembilan kondisi lulus; full grid selesai dengan 108/108 kandidat berhasil. Evaluasi test tuning belum dijalankan. Lihat [laporan full grid](docs/tuning_full_report.md). Acuan: [desain eksperimen](docs/desain_eksperimen.md), [search space](docs/search_space.md), dan [laporan smoke](docs/tuning_notebook_report.md). Hasil baru terpisah dari seluruh hasil historis.
+Tuning baru: tiga notebook memakai runner bersama dengan grid sama dan FT langsung dari ImageNet. Integrasi dan smoke aktual sembilan kondisi lulus; full grid selesai dengan 108/108 kandidat berhasil. Evaluasi test tuning lanjutan selesai; ResNet50/scratch tetap terpilih dari validation, dengan test MAE 17.8816, RMSE 29.4082, dan R2 0.0835. Lihat [laporan evaluasi tuning](docs/tuning_evaluation_report.md). Test telah terpapar pada PHASE 5. Lihat [laporan full grid](docs/tuning_full_report.md). Acuan: [desain eksperimen](docs/desain_eksperimen.md), [search space](docs/search_space.md), dan [laporan smoke](docs/tuning_notebook_report.md). Hasil baru terpisah dari seluruh hasil historis.
 
 ## Struktur proyek
 
@@ -25,7 +25,7 @@ notebooks/01_Preprocessing.ipynb  Notebook preprocessing tanpa output pasien
 notebooks/02_ResNet50.ipynb       Tuning ResNet50 melalui runner bersama
 notebooks/03_VGG16.ipynb         Tuning VGG16 melalui runner bersama
 notebooks/04_VGG19.ipynb         Tuning VGG19 melalui runner bersama
-notebooks/05_Model_Comparison.ipynb  Perbandingan sembilan CNN dan dua baseline
+notebooks/05_Model_Comparison.ipynb  Evaluasi tuning sembilan CNN dan dua baseline
 tests/                    Pengujian audit, preprocessing, model dan pelaporan
 docs/                     Laporan per phase dan keputusan penggunaan data
 artifacts/audit/           Bukti audit lokal, termasuk metadata pasien
@@ -57,7 +57,7 @@ cd work-ahi-regression
 
 Pindahkan `data/` serta `artifacts/processed_data/`, `artifacts/experiments/`, `artifacts/comparison/`, dan `artifacts/notebooks/` melalui USB atau jaringan lokal. Pertahankan struktur folder; hasil inti historis sekitar 1,4 GiB. Sertakan `artifacts/tuning/` untuk hasil baru. `smoke_tests/` menyimpan diagnostik historis; `torch_cache/` tidak diperlukan untuk membaca hasil atau memuat checkpoint terlatih.
 
-Buat `.venv` baru dan pasang dependensi sesuai perangkat laptop. Buka notebook 05 dengan `RUN_FINAL_EVALUATION=False` untuk membaca hasil tanpa fitting atau inferensi ulang. Protokol beku menyimpan path absolut PC; verifikasi aset di lokasi baru memerlukan pemetaan path tanpa menimpa protokol asli. Clone saja tidak menyertakan data atau hasil lokal.
+Buat `.venv` baru dan pasang dependensi sesuai perangkat laptop. Buka notebook 05 dengan `RUN_FINAL_EVALUATION=False` untuk membaca hasil tuning di `artifacts/tuning/grid_v1/evaluation_v1/` tanpa fitting atau inferensi ulang. Notebook beroutput terbaru tersedia di `artifacts/tuning/notebook_checks/05_Model_Comparison.tuning.report.executed.ipynb`. Protokol beku menyimpan path absolut PC; verifikasi aset di lokasi baru memerlukan pemetaan path tanpa menimpa protokol asli. Clone saja tidak menyertakan data atau hasil lokal.
 
 ## Dataset
 
@@ -112,7 +112,7 @@ Full grid memakai 12 kombinasi per strategi dan memerlukan persetujuan setelah l
 
 Ringkasan khusus tiga arsitektur tersedia pada [perbandingan ResNet50, VGG16, dan VGG19](docs/perbandingan_model.md).
 
-Buka `notebooks/05_Model_Comparison.ipynb` dengan kernel `.venv`. Default `RUN_FINAL_EVALUATION=False` membaca hasil yang sudah ada. Notebook beroutput lokal: `artifacts/notebooks/05_Model_Comparison.executed.ipynb`. Tidak ada training ulang CNN atau pengulangan inferensi test saat membaca laporan.
+Laporan beroutput historis tetap tersedia di `artifacts/notebooks/05_Model_Comparison.executed.ipynb`. Notebook sumber `05_Model_Comparison.ipynb` kini membaca hasil tuning di `artifacts/tuning/grid_v1/evaluation_v1/`, dengan `RUN_FINAL_EVALUATION=False`; laporan tuning beroutput tersedia di `artifacts/tuning/notebook_checks/05_Model_Comparison.tuning.report.executed.ipynb`. Membaca laporan tidak melatih ulang model atau mengulang inferensi test.
 
 Hasil ada di `artifacts/comparison/`: `comparison_validation.csv`, `comparison_test.csv`, metrik dan prediksi per posisi, `training_costs.csv`, `transfer_contributions.csv`, checkpoint baseline, `research_discussion.md`, dan `quality_checks.json`. Sebanyak 32 tes lulus dan 95 grafik disimpan pada 300 DPI. Pengujian setelah paket training terpasang:
 

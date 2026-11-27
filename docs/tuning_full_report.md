@@ -1,5 +1,7 @@
 # Penyelesaian full grid tuning
 
+Status terbaru: evaluasi test lanjutan selesai; lihat [laporan evaluasi tuning](tuning_evaluation_report.md). Isi berikut merekam penyelesaian full grid sebelum evaluasi test.
+
 Diperiksa pada 27 November 2026 sebelum push. Seluruh 108 kandidat selesai dengan status succeeded: 36 per arsitektur, tanpa kandidat gagal. Penanda completion.json ketiga arsitektur menyatakan completed dan test_accessed=False. Evaluasi test tuning belum dijalankan.
 
 ## Hasil pelaksanaan

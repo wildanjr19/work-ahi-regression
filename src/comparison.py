@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
 from .audit import file_hash
-from .config import ARTIFACTS_DIR, POSITIONS, PROCESSED_DIR, PROJECT_ROOT, TRAINING
+from .config import ARTIFACTS_DIR, POSITIONS, PROCESSED_DIR, PROJECT_ROOT, TRAINING, TUNING_DIR
 from .evaluation import evaluate_predictions, plot_diagnostics, prediction_table, regression_metrics, save_evaluation
 from .model_utils import ARCHITECTURES, EXPERIMENTS, configure_runtime, load_checkpoint, load_development_data, make_dataset, predict_model, torch
 from .preprocessing import save_json, validate_payload
@@ -214,18 +214,24 @@ def load_held_out(protocol_path, expected_hash, output_root, processed_dir=PROCE
     return load_payload("test", protocol["contract"], processed_dir)
 
 
-def run_comparison(output_root=ARTIFACTS_DIR / "comparison", test_evaluation_approved=False):
+def run_comparison(output_root=ARTIFACTS_DIR / "comparison", test_evaluation_approved=False, *, tuning_root=None):
     if not test_evaluation_approved:
-        raise PermissionError("PHASE 5 must authorize final test evaluation")
+        raise PermissionError("Test evaluation requires explicit approval")
     output_root = Path(output_root)
     if output_root.exists():
         raise FileExistsError("Comparison output exists; read saved results instead of exposing test again")
+    if tuning_root is not None and not output_root.resolve().is_relative_to(TUNING_DIR.resolve()):
+        raise ValueError("Tuning evaluation must remain inside artifacts/tuning")
     runtime = configure_runtime()
     development, contract = load_development_data()
     train = load_payload("train", contract)
     validation = load_payload("validation", contract)
     del development
-    metrics, predictions, costs, assets, histories = collect_cnn_results(contract, validation)
+    if tuning_root is None:
+        metrics, predictions, costs, assets, histories = collect_cnn_results(contract, validation)
+    else:
+        from .tuning_evaluation import collect_tuned_cnn_results
+        metrics, predictions, costs, assets, histories = collect_tuned_cnn_results(contract, validation, tuning_root)
     output_root.mkdir(parents=True)
     save_json(output_root / "runtime.json", runtime)
     baseline_metrics, baseline_predictions, baseline_costs = fit_baselines(train, validation, output_root)
@@ -252,20 +258,28 @@ def run_comparison(output_root=ARTIFACTS_DIR / "comparison", test_evaluation_app
         path = Path(row["checkpoint"])
         assets[str(path)] = file_hash(path)
         assets[str(path.parent / "run.json")] = file_hash(path.parent / "run.json")
-    for filename in ("comparison.py", "comparison_plots.py", "config.py", "model_utils.py", "evaluation.py", "preprocessing.py"):
+    for filename in ("comparison.py", "comparison_plots.py", "config.py", "model_utils.py", "evaluation.py", "preprocessing.py", "reporting.py", "tuning.py", "tuning_evaluation.py"):
         path = PROJECT_ROOT / "src" / filename
         assets[str(path)] = file_hash(path)
     for filename in ("metrics_validation.csv", "comparison_validation.csv", "predictions_validation.csv", "training_costs.csv", "ridge_validation_search.csv"):
         path = output_root / filename
         assets[str(path.resolve())] = file_hash(path)
+    expectations = {f"{row['Model']}/{row['Experiment']}": row["checkpoint_expected"]
+                    for row in costs.to_dict("records") if row["kind"] == "CNN" and tuning_root is not None}
     protocol = {"frozen_utc": datetime.now(timezone.utc).isoformat(), "test_evaluation_authorized": True,
                 "selection_criterion": "validation RMSE, then MAE, then stable model/experiment labels",
-                "selection": choices, "cnn_training_config": asdict(TRAINING), "ridge_alphas": list(RIDGE_ALPHAS),
+                "selection": choices,
+                "cnn_training_config": ({key: value["config"] for key, value in expectations.items()}
+                                        if tuning_root is not None else asdict(TRAINING)),
+                "ridge_alphas": list(RIDGE_ALPHAS),
                 "ridge_solver": "cholesky", "ridge_scaler": "StandardScaler fitted on training only",
                 "no_refit_after_selection": True, "no_cnn_retraining": True,
                 "test_role": "report all frozen conditions; never select or tune from test results",
                 "uncertainty": "single seed, no confidence interval or significance test",
-                "research_status": contract["metadata"]["status"], "contract": contract, "assets": assets}
+                "research_status": contract["metadata"]["status"], "contract": contract, "assets": assets,
+                "initialization": "independent" if tuning_root is not None else "historical",
+                "checkpoint_expectations": expectations, "test_previously_exposed": True,
+                "test_context": "follow_up_after_previous_exposure"}
     protocol_path = output_root / "frozen_protocol.json"
     save_json(protocol_path, protocol)
     protocol_hash = file_hash(protocol_path)
@@ -279,7 +293,8 @@ def run_comparison(output_root=ARTIFACTS_DIR / "comparison", test_evaluation_app
         name, experiment = record["Model"], record["Experiment"]
         print(f"Frozen test inference: {name}/{experiment}", flush=True)
         if record["kind"] == "CNN":
-            model = load_checkpoint(record["checkpoint"], "cuda")
+            expected = expectations.get(f"{name}/{experiment}")
+            model = load_checkpoint(Path(record["checkpoint"]), "cuda", expected=expected)
             values = predict_model(model, make_dataset(test, TRAINING.batch_size), torch.device("cuda"))
             del model
             gc.collect()
@@ -301,13 +316,16 @@ def run_comparison(output_root=ARTIFACTS_DIR / "comparison", test_evaluation_app
     contributions = transfer_contributions(all_metrics)
     contributions.to_csv(output_root / "transfer_contributions.csv", index=False)
     from .comparison_plots import plot_comparison, research_discussion
-    figures = plot_comparison(all_metrics, costs, histories, pd.concat((predictions, test_predictions)), output_root / "figures")
-    discussion = research_discussion(all_metrics, costs, choices, contributions, contract)
+    initialization = protocol["initialization"]
+    figures = plot_comparison(all_metrics, costs, histories, pd.concat((predictions, test_predictions)), output_root / "figures",
+                              initialization=initialization)
+    discussion = research_discussion(all_metrics, costs, choices, contributions, contract, initialization=initialization)
     (output_root / "research_discussion.md").write_text(discussion, encoding="utf-8")
     verify_frozen_protocol(protocol_path, protocol_hash)
     save_json(output_root / "completion.json", {"status": "complete", "protocol_sha256": protocol_hash,
               "frozen_conditions": len(costs), "test_samples": len(test["targets"]),
               "test_patients": len(set(test["patient_ids"])), "test_components": len(set(test["patient_components"])),
               "test_positions": {position: int((test["positions"] == position).sum()) for position in POSITIONS},
-              "figures": figures, "test_diagnostic_figures": len(costs) * 5, "cnn_retrained": False})
+              "figures": figures, "test_diagnostic_figures": len(costs) * 5, "cnn_retrained": False,
+              "test_previously_exposed": True, "test_context": protocol["test_context"]})
     return all_metrics, costs, choices

@@ -8,7 +8,7 @@ from .config import POSITIONS, PREPROCESSING
 from .model_utils import ARCHITECTURES, EXPERIMENTS
 
 
-def plot_comparison(metrics, costs, histories, predictions, output_dir):
+def plot_comparison(metrics, costs, histories, predictions, output_dir, *, initialization="historical"):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -86,7 +86,8 @@ def plot_comparison(metrics, costs, histories, predictions, output_dir):
     figure, axis = plt.subplots(figsize=(11, 5))
     x = np.arange(len(cnn_costs))
     axis.bar(x - 0.18, cnn_costs.training_seconds, width=0.36, label="Tahap ini", color="#2166ac")
-    axis.bar(x + 0.18, cnn_costs.cumulative_training_seconds, width=0.36, label="Termasuk parent feature extraction", color="#b35806")
+    cumulative_label = "Mandiri; tanpa biaya FE terpisah" if initialization == "independent" else "Termasuk parent feature extraction"
+    axis.bar(x + 0.18, cnn_costs.cumulative_training_seconds, width=0.36, label=cumulative_label, color="#b35806")
     axis.set_xticks(x, cnn_labels, rotation=55, ha="right", fontsize=8)
     axis.set(ylabel="Detik training GPU", title="Biaya training CNN; baseline CPU dicatat terpisah")
     axis.legend(fontsize=8)
@@ -115,7 +116,7 @@ def plot_comparison(metrics, costs, histories, predictions, output_dir):
     return paths
 
 
-def research_discussion(metrics, costs, choices, contributions, contract):
+def research_discussion(metrics, costs, choices, contributions, contract, *, initialization="historical"):
     lines = ["# Pembahasan hasil aktual", "", "## Pemilihan dan evaluasi terpisah", ""]
     for group, label in (("cnn", "CNN utama"), ("baseline", "Baseline terpilih")):
         selected = choices[group]
@@ -128,7 +129,9 @@ def research_discussion(metrics, costs, choices, contributions, contract):
     for model in ARCHITECTURES:
         rows = overall[(overall.Model == model) & (overall.before == "scratch") & (overall.after == "fine_tuning")].set_index("Subset")
         lines.append(f"- {model}, scratch ke fine-tuning: penurunan RMSE validation {rows.loc['validation', 'RMSE_reduction_percent']:+.2f}%; test {rows.loc['test', 'RMSE_reduction_percent']:+.2f}%.")
-    lines += ["", "## Konvergensi, biaya, dan overfitting", "", "Tabel biaya mencatat epoch terbaik/selesai dan parameter trainable. Epoch fine-tuning dimulai setelah feature extraction; waktu kumulatif memasukkan biaya parent. Baseline memakai CPU dan biaya pencarian alpha; CNN memakai GPU. Batas epoch sama tidak berarti komputasi identik.", ""]
+    timing = ("FT langsung dimulai dari ImageNet dan head baru; biaya FT tidak memasukkan FE terpisah."
+              if initialization == "independent" else "Epoch fine-tuning dimulai setelah feature extraction; waktu kumulatif memasukkan biaya parent.")
+    lines += ["", "## Konvergensi, biaya, dan overfitting", "", f"Tabel biaya mencatat epoch terbaik/selesai dan parameter trainable. {timing} Baseline memakai CPU dan biaya pencarian alpha; CNN memakai GPU. Batas epoch sama tidak berarti komputasi identik.", ""]
     for row in costs[(costs.kind == "CNN") & (costs.Experiment == "fine_tuning")].itertuples():
         lines.append(f"- {row.Model}: checkpoint epoch {int(row.best_epoch)}/{int(row.epochs)}; validation loss terbaik/akhir {row.best_val_loss:.2f}/{row.last_val_loss:.2f}.")
     lines += ["", "Kurva memperlihatkan risiko overfitting: training loss rendah tidak menjamin validation membaik. Evaluasi memakai checkpoint terbaik. Perbedaan parameter dan blok trainable membatasi klaim efisiensi dan keunggulan arsitektur.", "", "## Posisi tidur", ""]
