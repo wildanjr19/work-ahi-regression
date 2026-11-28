@@ -1,0 +1,55 @@
+Use case: infographic-diagram
+Asset type: draft research-methodology flowchart for an Indonesian academic thesis, portrait A4-like high resolution.
+Primary request: Generate ONE formal, academically rigorous, minimalist research flowchart titled "Diagram Alir Penelitian" with subtitle "Regresi AHI berbasis fitur tiga sensor". It must look like an elegant journal figure made with crisp vector-like boxes and directional arrows, but delivered as a raster image. Indonesian text exactly as specified below.
+Style: flat 2D, plain white or very pale ivory background; muted natural sage green for key CNN boxes, warm pale beige for data preparation, near-white gray for auxiliary paths; dark charcoal text, thin dark green-gray outlines and arrows. No shadows, gradients, textures, illustrations, icons, logos, watermarks, decorative objects, or fabricated metrics. Restrained serif title, highly readable sans-serif box labels. Generous margins, balanced box padding, clear hierarchy. ENERGY 1 / RHYTHM 1 / MOTION 1. Boxes organize method stages; arrowheads encode actual processing dependencies, not decoration.
+Composition: vertically flowing portrait, sufficiently tall and wide to render every label legibly. Main central sequence and two narrower lower side lanes. Reserve space at right for an isolated test path. No tangled or intersecting connectors. Do not shrink text to make unnecessary decoration fit.
+
+EXACT CONTENT AND TOPOLOGY, from top to bottom:
+1. A compact top box:
+"Data tiga sensor"
+"Flow • PulseRate • Pleth"
+"Target: AHI kontinu"
+Arrow down to 2.
+2. Wide box:
+"Audit dan penyelarasan data"
+"Satu sampel = pasangan ID dan posisi"
+"Complete-case tiga sensor; tanpa SMOTE"
+Arrow down to 3.
+3. Wide box:
+"Pembagian data berbasis komponen"
+"ID dan salinan fitur berada pada subset yang sama"
+"Train: 755 | Validation: 157 | Test: 179"
+Arrow down to 4.
+4. Wide box:
+"Preprocessing dan pembentukan input"
+"Scaler persentil 1–99: fit hanya pada train"
+"Matriks 50 × 11 per sensor; padding dan mask"
+"Pseudo-image 224 × 224 × 3 + one-hot posisi"
+Below this stage divide into THREE clearly separated tracks:
+LEFT auxiliary baseline track, CENTRAL main CNN track, RIGHT reserved test track.
+LEFT: single pale neutral box "Baseline pembanding" then "Median training dan Ridge" then "Fit hanya pada train". This box receives an arrow from stage 4 and a long non-crossing arrow down to final evaluation stage 8, bypassing CNN grid search and selection.
+RIGHT: small pale neutral box "Test tersimpan" then "Tidak digunakan untuk tuning". Receives an arrow from stage 4. A clearly separated thin dashed arrow continues down to stage 8 only, with no connections into CNN training, grid search, or model selection.
+CENTER stage 5: grouped CNN block with heading "Eksperimen CNN: 9 kondisi". Within it three aligned small architecture boxes: "ResNet50", "VGG16", "VGG19". Below them a shared readable line "Masing-masing: Scratch • FE • FT langsung". Underneath within this same grouped block add compact explanatory lines "FE: backbone beku, head dilatih" and "FT: head dan blok akhir dilatih sejak awal". Add "Inisialisasi baru pada setiap kandidat". This central block receives arrow from preprocessing stage 4; label its input arrow "Train dan validation".
+Then arrow down to CENTRAL stage 6:
+"Grid search: 108 kandidat"
+"Learning rate: 10⁻⁶, 10⁻⁵, 10⁻⁴, 10⁻³"
+"Dropout: 0,1; 0,3; 0,5"
+"Adam • MSE • batch 8 • maksimal 50 epoch"
+"Early stopping berdasarkan validation"
+Then arrow down to CENTRAL stage 7:
+"Pemilihan dan pembekuan model"
+"RMSE validation terkecil; MAE jika seri"
+"Bekukan konfigurasi dan checkpoint"
+Then arrow down to stage 8, a WIDE convergence box receiving CENTRAL frozen CNN checkpoint, LEFT baseline, and RIGHT held-out test:
+"Evaluasi test dan perbandingan"
+"Tanpa pelatihan ulang CNN"
+"MAE • MSE • RMSE • R²"
+"Keseluruhan dan per posisi"
+Then arrow down to final wide box:
+"Interpretasi hasil dan kesimpulan"
+"Perbandingan CNN dan baseline; keterbatasan data"
+At the very bottom place a clear small-but-legible academic note, two lines maximum:
+"Catatan: test telah terpapar pada penelitian sebelumnya."
+"Evaluasi ini merupakan evaluasi lanjutan, bukan evaluasi independen baru."
+
+Critical scientific constraints: Train/validation/test counts above are documented sample counts. Do not invent results or numerical performance. FT must NOT receive an arrow from FE, and must NOT imply loading an FE checkpoint. The test route must bypass all training and selection. The scaler is fit on train only and applied consistently to every subset. Three channels are sensor features, not clinical photographs. No patient identifiers or patient-level values. Render all labels accurately verbatim, avoid extra text. Ensure correct spelling of "penyelarasan", "persentil", "pembekuan", and "keterbatasan".
