@@ -1,0 +1,63 @@
+Use case: scientific-educational.
+Asset type: one high-resolution Indonesian educational infographic, a project illustration for understanding AHI preprocessing.
+Primary request: Create a clear, natural, polished scientific illustration titled "Dari data sensor ke input CNN", subtitle "Alur preprocessing untuk regresi AHI". Use a portrait poster around 2048 × 3072, readable at full resolution, generous margins. Warm ivory paper background, dark forest-green text and fine connectors, muted green and sand accents. Calm academic textbook style, clean sans-serif typography, flat schematic illustrations with subtle dimensional layers for stacked arrays, no decorative clipart. The supplied crop in the conversation is only a topic reference; expand its preprocessing ideas into a complete illustrated explanation, do not reproduce the crop.
+Composition: one unambiguous numbered top-to-bottom flow, eight horizontal sections with visual mini-diagrams and short exact Indonesian labels. Keep all text horizontal, large, spaced, and legible. Illustrations must explain the transformations, not just decorate boxes. Every section has a bold numbered heading. Connect each section only to the next with a clear downward arrow. The final section branches to THREE PARALLEL ALTERNATIVE models, never a chain.
+
+Exact content and schematic requirements:
+
+1. Heading "1  Tiga sumber data"
+Draw three small spreadsheet/table illustrations, labeled exactly "Flow Patient.xlsx", "PulseRate.xlsx", "Pleth.xlsx".
+Caption "Fitur per IMF dari Flow, PulseRate, dan Pleth".
+No actual patient data, names, IDs, numeric examples, or real records.
+
+2. Heading "2  Validasi dan penyelarasan"
+Small illustration of three tables aligning to one sample.
+Text "Satu sampel = pasangan (id, Posisi)"
+Text "Gunakan sampel lengkap ketiga sensor"
+Text "Periksa kunci, nilai numerik, dan konsistensi AHI"
+
+3. Heading "3  Split sebelum scaling"
+Three separated bins labeled "Train", "Validation", "Test".
+Text "ID dan salinan fitur tetap dalam subset yang sama"
+Text "Gunakan manifest split yang sama untuk semua model"
+No percentage claims or counts.
+A clear local visual inset in this section or next: ONLY Train points to a scaler symbol labeled "Fit scaler". Then the fitted scaler points to all three subsets for transform. Validation and Test must never point into Fit scaler.
+
+4. Heading "4  Scaling persentil 1–99"
+A simple value range compressing into a bar labeled "0–1".
+Text "Hitung batas per fitur dan sensor, hanya dari IMF nyata train"
+Text "Terapkan batas train ke validation dan test; clip fitur ke 0–1"
+Small note "AHI tetap asli dan terpisah dari fitur"
+
+5. Heading "5  Matriks 50 × 11 per sensor"
+Show THREE tall thin schematic matrices separately labeled "Flow", "PulseRate", "Pleth". Indicate vertical axis "50 slot IMF" and horizontal "11 fitur". Include a few black horizontal absent-row slots, clearly marked as padding, plus small separate binary mask strips.
+Text "Urutkan indeks IMF; isi slot yang hilang dengan padding"
+Text "Mask: IMF tersedia = 1, hilang = 0"
+Small note "Tanpa interpolasi; mask disimpan terpisah"
+Matrices are schematic, need not draw all 50 rows, but must depict many more rows than columns and label exact dimensions.
+
+6. Heading "6  Encoding dan pseudo-image"
+Visually stack the three sensor layers in exact order Flow, PulseRate, Pleth to a labeled volume "50 × 11 × 3", then arrow labeled "Resize nearest-neighbor" to a square pixelated schematic image labeled "224 × 224 × 3".
+Text "Fitur 0–1 menjadi piksel uint8 1–255; padding = 0"
+Small note "Pseudo-image fitur, bukan foto atau citra fisiologis"
+Use abstract blocky pixel patterns only, no anatomy, no waveform invented as data.
+
+7. Heading "7  Dua input terpisah"
+Show two side-by-side pathways which remain distinct:
+Path A label "Input citra" with a square pseudo-image and labels "224 × 224 × 3" and "Tensor PyTorch: 3 × 224 × 224".
+Path B label "Input posisi" with three rows exactly:
+"Supine = [1, 0, 0]"
+"Left = [0, 1, 0]"
+"Right = [0, 0, 1]"
+Small shared caption "Simpan input, target, mask, scaler, dan manifest"
+Include a visually small target token "Target AHI" off to the side, not entering either input path. No AHI enters image features.
+
+8. Heading "8  Input yang sama untuk tiga model"
+A shared preprocessing note above three parallel model boxes: "Di dalam model: piksel ÷ 255 sekali, lalu normalisasi mean/std ImageNet"
+Draw three equal alternative boxes labeled "ResNet50", "VGG16", "VGG19". Route BOTH the citra and posisi paths to each model using two clearly distinct shared buses, neatly without confusing crossings.
+Caption "Fitur CNN digabung dengan one-hot posisi pada head regresi"
+Final small output label "Prediksi AHI kontinu".
+
+Footer "Ilustrasi skematis; tidak menampilkan data pasien."
+
+Constraints: scientifically faithful. Mask is stored separately and is NOT a fourth CNN channel or a third model input. Position is a separate one-hot input, never painted into pseudo-image. Split before fitting the scaler. No SMOTE, interpolation, patient counts, metrics, training, or extra processing. Padding zero vs observed pixel range 1–255 is essential. Do not use stock neural-network node diagrams. Do not display actual tables of medical data. No invented numeric dataset records. No watermark. Render all quoted Indonesian text accurately, with excellent spelling and clear typography. Prioritize correct readable labels and clear arrows over decorative detail.
